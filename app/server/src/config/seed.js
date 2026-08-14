@@ -1,5 +1,6 @@
 require('dotenv').config();
-const { sequelize, Category } = require('../models');
+const bcrypt = require('bcrypt');
+const { sequelize, Category, User } = require('../models');
 
 const categories = [
   { name: 'Development' },
@@ -26,6 +27,32 @@ async function seed() {
       } else {
         console.log(`Category already exists: ${cat.name} (id: ${record.id})`);
       }
+    }
+
+    // Ensure a single super admin user exists.
+    const existingAdmin = await User.findOne({ where: { role: 'super_admin' } });
+    if (existingAdmin) {
+      console.log(
+        `Super admin already exists: ${existingAdmin.email} (id: ${existingAdmin.id})`
+      );
+    } else {
+      const email = process.env.SUPER_ADMIN_EMAIL;
+      const password = process.env.SUPER_ADMIN_PASSWORD;
+
+      if (!email || !password) {
+        throw new Error(
+          'SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD must be set in the .env file to seed a super admin.'
+        );
+      }
+
+      const hashedPassword = bcrypt.hashSync(password, 10);
+      const admin = await User.create({
+        name: 'Super Admin',
+        email,
+        password_hash: hashedPassword,
+        role: 'super_admin',
+      });
+      console.log(`Created super admin user: ${admin.email} (id: ${admin.id})`);
     }
 
     console.log('Seeding complete.');
