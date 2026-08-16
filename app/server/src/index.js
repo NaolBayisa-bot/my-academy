@@ -9,6 +9,7 @@ const courseRoutes = require('./routes/courseRoutes');
 const lessonRoutes = require('./routes/lessonRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const progressRoutes = require('./routes/progressRoutes');
+const postRoutes = require('./routes/postRoutes');
 const { sequelize } = require('./models');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -27,6 +28,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api', lessonRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api', progressRoutes);
+app.use('/api/posts', postRoutes);
 
 // Centralized error handler — registered LAST, after all routes/middleware,
 // so it catches every error thrown by async handlers or passed via next(err)

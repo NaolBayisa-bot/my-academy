@@ -3,6 +3,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const {
   assignCategoryAdmin,
   getStudentsByCategory,
+  getAllStudents,
   getOverview,
 } = require('../controllers/adminController');
 const {
@@ -32,6 +33,11 @@ router.get(
   authorize('super_admin', 'category_admin'),
   getStudentsByCategory
 );
+
+// GET /api/admin/students
+// Returns all students across all categories, grouped by category_id.
+// Super_admin only.
+router.get('/students', authenticate, authorize('super_admin'), getAllStudents);
 
 // GET /api/admin/overview
 // Dashboard-level counts: total students, total courses, completions per

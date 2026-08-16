@@ -18,7 +18,7 @@ const db = {};
 // Define associations between models. This is centralized here (after all
 // models are loaded) to avoid circular require() dependencies between model
 // files.
-const { User, Category, Course, Lesson, Enrollment, LessonProgress } = db;
+const { User, Category, Course, Lesson, Enrollment, LessonProgress, Post } = db;
 
 if (Category && User) {
   // A Category is administered by a User (admin_id -> Users.id).
@@ -77,6 +77,26 @@ if (LessonProgress && Enrollment && Lesson) {
 
   // A Lesson has many LessonProgresses.
   Lesson.hasMany(LessonProgress, { foreignKey: 'lesson_id' });
+}
+
+if (Post && User) {
+  // A Post is authored by a User (author_id -> Users.id).
+  // Accessible as post.author.
+  Post.belongsTo(User, { as: 'author', foreignKey: 'author_id' });
+
+  // A User (as author) has many Posts.
+  // Accessible as user.posts.
+  User.hasMany(Post, { as: 'posts', foreignKey: 'author_id' });
+}
+
+if (Post && Category) {
+  // A Post belongs to a Category (category_id -> Categories.id).
+  // A null category_id means the post is global (visible to everyone).
+  // Accessible as post.category.
+  Post.belongsTo(Category, { foreignKey: 'category_id' });
+
+  // A Category has many Posts.
+  Category.hasMany(Post, { foreignKey: 'category_id' });
 }
 
 module.exports = {
