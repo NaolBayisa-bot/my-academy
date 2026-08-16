@@ -4,7 +4,13 @@ const cors = require('cors');
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const studentRoutes = require('./routes/studentRoutes');
+const courseRoutes = require('./routes/courseRoutes');
+const lessonRoutes = require('./routes/lessonRoutes');
+const enrollmentRoutes = require('./routes/enrollmentRoutes');
+const progressRoutes = require('./routes/progressRoutes');
 const { sequelize } = require('./models');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -16,6 +22,16 @@ app.use(express.json());
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api', lessonRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api', progressRoutes);
+
+// Centralized error handler — registered LAST, after all routes/middleware,
+// so it catches every error thrown by async handlers or passed via next(err)
+// and returns a consistent JSON shape: { error: "message" }.
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 

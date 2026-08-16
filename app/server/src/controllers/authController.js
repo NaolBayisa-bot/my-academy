@@ -19,14 +19,8 @@ const serializeUser = (user) => {
 // POST /api/auth/register
 // Creates a new student user and returns the user (without password_hash)
 // along with a signed JWT.
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res
-      .status(400)
-      .json({ error: 'Name, email, and password are required.' });
-  }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -46,24 +40,18 @@ exports.register = async (req, res) => {
       token,
     });
   } catch (error) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({ error: 'Email already in use.' });
-    }
-    // eslint-disable-next-line no-console
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error.' });
+    // Delegate to the centralized error handler in
+    // src/middleware/errorHandler.js. Sequelize unique-constraint
+    // violations are mapped to 409 there (e.g. "Email already in use.").
+    next(error);
   }
 };
 
 // POST /api/auth/login
 // Verifies credentials and returns a signed JWT plus the user info
 // (without password_hash).
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' });
-  }
 
   try {
     const user = await User.findOne({ where: { email } });
@@ -85,9 +73,9 @@ exports.login = async (req, res) => {
       token,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error.' });
+    // Delegate to the centralized error handler in
+    // src/middleware/errorHandler.js.
+    next(error);
   }
 };
 

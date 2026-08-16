@@ -18,7 +18,7 @@ const db = {};
 // Define associations between models. This is centralized here (after all
 // models are loaded) to avoid circular require() dependencies between model
 // files.
-const { User, Category } = db;
+const { User, Category, Course, Lesson, Enrollment, LessonProgress } = db;
 
 if (Category && User) {
   // A Category is administered by a User (admin_id -> Users.id).
@@ -28,6 +28,55 @@ if (Category && User) {
   // A User may belong to a Category (category_id -> Categories.id), reusing
   // the existing category_id column on the User model.
   User.belongsTo(Category, { foreignKey: 'category_id' });
+}
+
+if (Course && Category && User) {
+  // A Course belongs to a Category (category_id -> Categories.id).
+  Course.belongsTo(Category, { foreignKey: 'category_id' });
+
+  // A Course was created by a User (created_by -> Users.id).
+  // Accessible as course.creator.
+  Course.belongsTo(User, { as: 'creator', foreignKey: 'created_by' });
+
+  // A Category has many Courses.
+  Category.hasMany(Course, { foreignKey: 'category_id' });
+
+  // A User (as creator) has many Courses.
+  User.hasMany(Course, { as: 'createdCourses', foreignKey: 'created_by' });
+}
+
+if (Lesson && Course) {
+  // A Lesson belongs to a Course (course_id -> Courses.id).
+  // Accessible as lesson.course.
+  Lesson.belongsTo(Course, { foreignKey: 'course_id' });
+
+  // A Course has many Lessons.
+  Course.hasMany(Lesson, { foreignKey: 'course_id' });
+}
+
+if (Enrollment && User && Course) {
+  // An Enrollment belongs to a Student (User) and a Course.
+  // Accessible as enrollment.student and enrollment.course.
+  Enrollment.belongsTo(User, { as: 'student', foreignKey: 'student_id' });
+  Enrollment.belongsTo(Course, { foreignKey: 'course_id' });
+
+  // A Student has many Enrollments.
+  User.hasMany(Enrollment, { as: 'enrollments', foreignKey: 'student_id' });
+
+  // A Course has many Enrollments.
+  Course.hasMany(Enrollment, { foreignKey: 'course_id' });
+}
+
+if (LessonProgress && Enrollment && Lesson) {
+  // A LessonProgress belongs to an Enrollment and a Lesson.
+  LessonProgress.belongsTo(Enrollment, { foreignKey: 'enrollment_id' });
+  LessonProgress.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+
+  // An Enrollment has many LessonProgresses.
+  Enrollment.hasMany(LessonProgress, { foreignKey: 'enrollment_id' });
+
+  // A Lesson has many LessonProgresses.
+  Lesson.hasMany(LessonProgress, { foreignKey: 'lesson_id' });
 }
 
 module.exports = {
