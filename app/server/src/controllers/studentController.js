@@ -99,8 +99,10 @@ exports.getMyCategoryCourses = async (req, res) => {
 };
 
 // GET /api/students/my-enrollment
-// Returns the student's current in_progress enrollment (with the course,
-// its lessons, and the student's lesson progress), or null if none.
+// Returns the student's most recent enrollment (with the course, its lessons,
+// and the student's lesson progress), or null if the student has never
+// enrolled. The row may be pending, in_progress, or completed — callers should
+// interpret `enrollment.status` to decide how to render it.
 // Protected by `authenticate` + `authorize('student')`.
 exports.getMyEnrollment = async (req, res) => {
   try {
@@ -112,23 +114,30 @@ exports.getMyEnrollment = async (req, res) => {
     }
 
     const enrollment = await Enrollment.findOne({
-      where: { student_id: student.id, status: 'in_progress' },
+      where: { student_id: student.id },
+      // Stable include aliases so the response shape is predictable:
+      // enrollment.course.title, enrollment.course.lessons[],
+      // enrollment.lessonProgresses[].
       include: [
         {
           model: Course,
+          as: 'course',
           attributes: ['id', 'title', 'description', 'category_id'],
           include: [
             {
               model: Lesson,
+              as: 'lessons',
               attributes: ['id', 'title', 'type', 'url', 'order_index'],
             },
           ],
         },
         {
           model: LessonProgress,
+          as: 'lessonProgresses',
           attributes: ['lesson_id', 'completed_at'],
         },
       ],
+      order: [['enrolled_at', 'DESC']],
     });
 
     if (!enrollment) {
@@ -157,10 +166,20 @@ exports.getMyHistory = async (req, res) => {
 
     const enrollments = await Enrollment.findAll({
       where: { student_id: student.id, status: 'completed' },
+      // Stable include aliases so each enrollment is shaped as
+      // enrollment.course.title / enrollment.course.category.name.
       include: [
         {
           model: Course,
+          as: 'course',
           attributes: ['id', 'title', 'description', 'category_id'],
+          include: [
+            {
+              model: Category,
+              as: 'category',
+              attributes: ['id', 'name'],
+            },
+          ],
         },
       ],
       order: [['completed_at', 'DESC']],

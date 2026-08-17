@@ -1,11 +1,9 @@
 import './App.css'
+import AppRoutes from './routes/AppRoutes'
 
 function App() {
-  return (
-    <>
-      <h1>LMS Platform</h1>
-    </>
-  )
+  return <AppRoutes />
 }
 
 export default App
+
