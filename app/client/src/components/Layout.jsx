@@ -21,6 +21,7 @@ const NAV_LINKS = {
     { label: 'Dashboard', to: '/super-admin/dashboard' },
     { label: 'Assign Admins', to: '/super-admin/assign-admins' },
     { label: 'All Students', to: '/super-admin/students' },
+    { label: 'Enrollment Requests', to: '/super-admin/enrollments' },
     { label: 'Overview', to: '/super-admin/overview' },
     { label: 'Posts', to: '/super-admin/posts' },
   ],
