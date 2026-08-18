@@ -14,6 +14,7 @@ import MyStudents from '../pages/admin/MyStudents'
 import ManageCourses from '../pages/admin/ManageCourses'
 import CourseDetail from '../pages/admin/CourseDetail'
 import EnrollmentRequests from '../pages/admin/EnrollmentRequests'
+import Posts from '../pages/admin/Posts'
 import SuperAdminDashboard from '../pages/SuperAdminDashboard'
 import ProtectedRoute from './ProtectedRoute'
 import { dashboardPathForRole } from '../utils/dashboardPath'
@@ -141,7 +142,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['category_admin']}>
             <Layout>
-              <Placeholder title="Posts" />
+              <Posts />
             </Layout>
           </ProtectedRoute>
         }
@@ -203,7 +204,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
             <Layout>
-              <Placeholder title="Posts" />
+              <Posts />
             </Layout>
           </ProtectedRoute>
         }
