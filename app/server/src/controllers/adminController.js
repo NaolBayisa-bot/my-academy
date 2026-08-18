@@ -264,3 +264,56 @@ exports.getOverview = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
+// PATCH /api/admin/deassign-category-admin
+// Inverse of assign-category-admin: clears `category.admin_id` and reverts the
+// de-assigned user's role back to 'student', both within a transaction. Protected
+// by `authenticate` + `authorize('super_admin')`.
+//
+// The user's `category_id` is intentionally left untouched so the de-assigned
+// user stays grouped under their category and is immediately available again from
+// that category's student picker (GET /api/admin/students is scoped per category
+// and excludes non-student roles). `assignCategoryAdmin` sets category_id when
+// promoting to admin, so leaving it makes the user reappear in the same
+// category's pool after being de-assigned.
+exports.deassignCategoryAdmin = async (req, res) => {
+  const { categoryId } = req.body;
+
+  if (!categoryId) {
+    return res.status(400).json({ error: 'categoryId is required.' });
+  }
+
+  try {
+    const category = await Category.findByPk(categoryId);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found.' });
+    }
+
+    if (!category.admin_id) {
+      return res
+        .status(400)
+        .json({ error: 'Category has no admin assigned.' });
+    }
+
+    const user = await User.findByPk(category.admin_id);
+
+    await sequelize.transaction(async (t) => {
+      await category.update({ admin_id: null }, { transaction: t });
+      if (user) {
+        await user.update({ role: 'student' }, { transaction: t });
+      }
+    });
+
+    return res.status(200).json({
+      message: 'Category admin de-assigned.',
+      category: {
+        id: category.id,
+        name: category.name,
+        admin_id: null,
+      },
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};

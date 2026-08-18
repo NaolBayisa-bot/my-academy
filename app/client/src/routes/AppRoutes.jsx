@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
 import NotAuthorized from '../pages/NotAuthorized'
-import Placeholder from '../pages/Placeholder'
 import Layout from '../components/Layout'
 import StudentDashboard from '../pages/StudentDashboard'
 import SelectCategory from '../pages/student/SelectCategory'
@@ -10,12 +9,13 @@ import BrowseCourses from '../pages/student/BrowseCourses'
 import MyEnrollment from '../pages/student/MyEnrollment'
 import History from '../pages/student/History'
 import AdminDashboard from '../pages/AdminDashboard'
-import MyStudents from '../pages/admin/MyStudents'
+import AllStudents from '../pages/superadmin/AllStudents'
 import ManageCourses from '../pages/admin/ManageCourses'
 import CourseDetail from '../pages/admin/CourseDetail'
 import EnrollmentRequests from '../pages/admin/EnrollmentRequests'
 import Posts from '../pages/admin/Posts'
-import SuperAdminDashboard from '../pages/SuperAdminDashboard'
+import AssignAdmins from '../pages/superadmin/AssignAdmins'
+import Overview from '../pages/superadmin/Overview'
 import ProtectedRoute from './ProtectedRoute'
 import { dashboardPathForRole } from '../utils/dashboardPath'
 import { useAuth } from '../context/AuthContext'
@@ -102,7 +102,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['category_admin']}>
             <Layout>
-              <MyStudents />
+              <AllStudents />
             </Layout>
           </ProtectedRoute>
         }
@@ -154,7 +154,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
             <Layout>
-              <SuperAdminDashboard />
+              <Overview />
             </Layout>
           </ProtectedRoute>
         }
@@ -164,7 +164,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
             <Layout>
-              <Placeholder title="Assign Admins" />
+              <AssignAdmins />
             </Layout>
           </ProtectedRoute>
         }
@@ -174,17 +174,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['super_admin']}>
             <Layout>
-              <Placeholder title="All Students" />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/super-admin/overview"
-        element={
-          <ProtectedRoute allowedRoles={['super_admin']}>
-            <Layout>
-              <Placeholder title="Overview" />
+              <AllStudents />
             </Layout>
           </ProtectedRoute>
         }

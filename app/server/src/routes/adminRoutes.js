@@ -2,6 +2,7 @@ const express = require('express');
 const { authenticate, authorize } = require('../middleware/auth');
 const {
   assignCategoryAdmin,
+  deassignCategoryAdmin,
   getStudentsByCategory,
   getAllStudents,
   getOverview,
@@ -22,6 +23,16 @@ router.patch(
   authenticate,
   authorize('super_admin'),
   assignCategoryAdmin
+);
+
+// PATCH /api/admin/deassign-category-admin
+// Inverse of assign-category-admin: clears a category's admin (reverts the
+// user's role back to 'student'). Only a super_admin can perform this.
+router.patch(
+  '/deassign-category-admin',
+  authenticate,
+  authorize('super_admin'),
+  deassignCategoryAdmin
 );
 
 // GET /api/admin/category/:categoryId/students

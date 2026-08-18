@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import PostsFeed from './PostsFeed'
 
 function StudentDashboard() {
   const { user } = useAuth()
@@ -11,7 +12,7 @@ function StudentDashboard() {
 
   return (
     <div>
-      <h1>Student Dashboard</h1>
+      <PostsFeed />
     </div>
   )
 }
