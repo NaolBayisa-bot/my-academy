@@ -49,6 +49,7 @@ const FormFieldBase = React.forwardRef(function FormFieldBase(
 const TextInput = React.forwardRef(function TextInput(
   { 
     placeholder,
+    type = 'text',
     className = '',
     icon,
     error,
@@ -61,14 +62,15 @@ const TextInput = React.forwardRef(function TextInput(
     'bg-surface-container-high text-on-surface ' +
     'placeholder:text-on-surface-variant/60 ' +
     'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-    `${error ? 'border-error focus:ring-error' : 'border-outline-variant'} ` +
-    `${props.disabled ? 'disabled:cursor-not-allowed disabled:opacity-50' : 'cursor-text'} ` +
+    (error ? 'border-error focus:ring-error ' : 'border-outline-variant ') +
+    (props.disabled ? 'disabled:cursor-not-allowed disabled:opacity-50' : 'cursor-text') +
+    ' ' +
     className
 
   return (
     <input
       ref={ref}
-      type="text"
+      type={type}
       placeholder={placeholder}
       className={inputClasses}
       disabled={props.disabled}
@@ -93,8 +95,9 @@ const TextArea = React.forwardRef(function TextArea(
     'bg-surface-container-high text-on-surface ' +
     'placeholder:text-on-surface-variant/60 ' +
     'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-    `${error ? 'border-error focus:ring-error' : 'border-outline-variant'} ` +
-    `${props.disabled ? 'disabled:cursor-not-allowed disabled:opacity-50' : 'cursor-text'} ` +
+    (error ? 'border-error focus:ring-error ' : 'border-outline-variant ') +
+    (props.disabled ? 'disabled:cursor-not-allowed disabled:opacity-50' : 'cursor-text') +
+    ' ' +
     className
 
   return (
@@ -124,7 +127,7 @@ const Select = React.forwardRef(function Select(
     'w-full px-3 py-2 rounded-xl border transition-all duration-200 ' +
     'bg-surface-container-high text-on-surface ' +
     'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
-    `${error ? 'border-error focus:ring-error' : 'border-outline-variant'} ` +
+    (error ? 'border-error focus:ring-error ' : 'border-outline-variant ') +
     className
 
   return (
@@ -155,7 +158,8 @@ const PasswordInput = React.forwardRef(function PasswordInput(
     'placeholder:text-on-surface-variant/60 ' +
     'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ' +
     'border-outline-variant ' +
-    `${props.disabled ? 'disabled:cursor-not-allowed disabled:opacity-50' : 'cursor-text'} ` +
+    (props.disabled ? 'disabled:cursor-not-allowed disabled:opacity-50' : 'cursor-text') +
+    ' ' +
     className
 
   return (

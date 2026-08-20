@@ -10,6 +10,7 @@ const Button = React.forwardRef(function Button(
     fullWidth,
     children,
     disabled,
+    type = 'button',
     className = '',
     onClick,
     ...props 
@@ -52,7 +53,7 @@ const Button = React.forwardRef(function Button(
   return (
     <button
       ref={ref}
-      type="button"
+      type={type}
       disabled={disabled || loading}
       className={baseClasses + ' ' + variants[variant]}
       onClick={handleChange}
