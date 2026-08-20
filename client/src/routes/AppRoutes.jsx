@@ -1,7 +1,8 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
 import NotAuthorized from '../pages/NotAuthorized'
+import LandingPage from '../pages/LandingPage'
 import Layout from '../components/Layout'
 import StudentDashboard from '../pages/StudentDashboard'
 import SelectCategory from '../pages/student/SelectCategory'
@@ -17,19 +18,11 @@ import Posts from '../pages/admin/Posts'
 import AssignAdmins from '../pages/superadmin/AssignAdmins'
 import Overview from '../pages/superadmin/Overview'
 import ProtectedRoute from './ProtectedRoute'
-import { dashboardPathForRole } from '../utils/dashboardPath'
-import { useAuth } from '../context/AuthContext'
-
-// Redirects "/" to the dashboard that matches the current user's role.
-function RoleRedirect() {
-  const { user } = useAuth()
-  return <Navigate to={dashboardPathForRole(user?.role)} replace />
-}
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<RoleRedirect />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/403" element={<NotAuthorized />} />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../utils/dashboardPath'
 
@@ -50,6 +50,17 @@ function Login() {
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <button type="submit">Login</button>
       </form>
+      <p style={{ fontSize: '0.875rem' }}>
+        Don&apos;t have an account?{' '}
+        <Link to="/register" style={{ color: '#2563eb' }}>
+          Sign up
+        </Link>
+      </p>
+      <p style={{ fontSize: '0.875rem' }}>
+        <Link to="/" style={{ color: '#2563eb' }}>
+          ← Back to home
+        </Link>
+      </p>
     </div>
   )
 }
