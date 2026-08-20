@@ -1,28 +1,14 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
+import AmbientBackground from '../../components/AmbientBackground'
+import Card from '../../components/ui/Card'
+import Alert from '../../components/ui/Alert'
+import Modal from '../../components/ui/Modal'
+import Button from '../../components/ui/Button'
+import EmptyState from '../../components/ui/EmptyState'
+import FormField from '../../components/ui/FormField'
+import DataTable from '../../components/ui/DataTable'
 
-// Super admin page: assign a category admin to each category.
-//
-// Data flow:
-//  - GET /api/categories                  -> the categories, each with its
-//                                           current admin (Category.admin, null
-//                                           when unassigned).
-//  - GET /api/admin/students              -> students grouped by category
-//                                           (studentsByCategory). Each
-//                                           category's picker is scoped to that
-//                                           category's own students, so an admin
-//                                           is always promoted from the
-//                                           category they will administer.
-//                                           (There is no global user-list
-//                                           endpoint, so existing category
-//                                           admins are not offered as
-//                                           re-assignable picks.)
-//  - PATCH /api/admin/assign-category-admin -> { userId, categoryId }
-//
-// After a successful assignment a confirmation is shown and both lists are
-// refetched so the newly-assigned admin appears under its category and leaves
-// the student picker. Backend validation errors (e.g. trying to assign a user
-// who is already a super_admin) are surfaced verbatim in the message below.
 function AssignAdmins() {
   const [categories, setCategories] = useState([])
   const [studentsByCategory, setStudentsByCategory] = useState({})
@@ -31,13 +17,12 @@ function AssignAdmins() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [assigningId, setAssigningId] = useState(null)
-  // Busy state for the per-admin user-management actions (suspend/activate/delete).
   const [userActingId, setUserActingId] = useState(null)
 
-  // Per-category transient UI state, keyed by category id so the searchable
-  // dropdown + selection are tracked independently for each card.
+  // Per-category transient UI state
   const [searchByCat, setSearchByCat] = useState({})
   const [selectedByCat, setSelectedByCat] = useState({})
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(null)
 
   const setSearch = (categoryId, value) =>
     setSearchByCat((prev) => ({ ...prev, [categoryId]: value }))
@@ -52,8 +37,6 @@ function AssignAdmins() {
   const loadCandidates = async () => {
     const res = await api.get('/admin/students')
     const grouped = res.data.studentsByCategory || {}
-    // Keep students grouped by their category so each category's picker only
-    // ever offers students from that category.
     const normalized = {}
     Object.entries(grouped).forEach(([categoryId, students]) => {
       normalized[categoryId] = students.map((student) => ({
@@ -65,44 +48,24 @@ function AssignAdmins() {
     setStudentsByCategory(normalized)
   }
 
-  // Categories are required to render the page.
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
         await loadCategories()
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err.response?.data?.error ||
-              'Failed to load categories. Please try again.'
-          )
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // Load candidates once.
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
         await loadCandidates()
       } catch (err) {
         if (!cancelled) {
           setError(
             err.response?.data?.error ||
-              'Failed to load students. Please try again.'
+            'Failed to load data.'
           )
         }
       } finally {
-        if (!cancelled) setCandidatesLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          setCandidatesLoading(false)
+        }
       }
     }
     load()
@@ -111,169 +74,193 @@ function AssignAdmins() {
     }
   }, [])
 
-  // Runs a user-management action (suspend/activate/delete) for a student
-  // and then refreshes the lists so the UI reflects the change immediately.
-  const runAction = async (student, fn) => {
-    setUserActingId(student.id)
+  const handleAssign = async (categoryId) => {
     setError(null)
     setSuccess(null)
+    setAssigningId(categoryId)
     try {
-      const res = await fn()
-      setSuccess(res?.data?.message || 'Action completed.')
-      await loadCandidates()
+      const userId = selectedByCat[categoryId]
+      await api.patch('/admin/assign-category-admin', { userId, categoryId })
+      await loadCategories()
+      setSuccess('Admin assigned successfully.')
+      setSelectedByCat((prev) => ({ ...prev, [categoryId]: '' }))
     } catch (err) {
-      setError(
-        err.response?.data?.error || 'Action failed. Please try again.'
-      )
-    } finally {
-      setUserActingId(null)
-    }
-  }
-
-  const handleSuspend = (student) =>
-    runAction(student, () => api.patch(`/admin/users/${student.id}/suspend`))
-
-  const handleActivate = (student) =>
-    runAction(student, () => api.patch(`/admin/users/${student.id}/activate`))
-
-  const handleDeleteUser = (student) =>
-    runAction(student, () => api.delete(`/admin/users/${student.id}`))
-
-  const handleAssign = async (category) => {
-    const userId = selectedByCat[category.id]
-    if (!userId) return
-
-    setAssigningId(category.id)
-    setError(null)
-    setSuccess(null)
-    try {
-      const res = await api.patch('/admin/assign-category-admin', {
-        userId,
-        categoryId: category.id,
-      })
-      setSuccess(res?.data?.message || 'Admin assigned successfully.')
-      // Remove the category from the list after assignment.
-      setCategories((prev) => prev.filter((c) => c.id !== category.id))
-      setSelectedByCat((prev) => {
-        const { [category.id]: _, ...rest } = prev
-        return rest
-      })
-      setSearchByCat((prev) => {
-        const { [category.id]: _, ...rest } = prev
-        return rest
-      })
-    } catch (err) {
-      setError(
-        err.response?.data?.error || 'Failed to assign admin. Please try again.'
-      )
+      setError(err.response?.data?.error || 'Failed to assign admin.')
     } finally {
       setAssigningId(null)
     }
   }
 
+  const handleDeassign = async (categoryId) => {
+    setError(null)
+    setSuccess(null)
+    setAssigningId(categoryId)
+    try {
+      await api.patch('/admin/deassign-category-admin', { categoryId })
+      await loadCategories()
+      setSuccess('Admin removed successfully.')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to remove admin.')
+    } finally {
+      setAssigningId(null)
+      setShowRemoveConfirm(null)
+    }
+  }
+
+  const openRemoveConfirm = (categoryId) => {
+    setShowRemoveConfirm(categoryId)
+  }
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-violet-500">Loading...</div>
+      <div className="relative min-h-screen bg-background">
+        <AmbientBackground grid={false} />
+        <div className="relative z-10 p-6">
+          <p className="text-on-surface">Loading categories...</p>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <p className="text-red-500">{error}</p>
+      <div className="relative min-h-screen bg-background">
+        <AmbientBackground grid={false} />
+        <div className="relative z-10 p-6">
+          <Alert variant="error" message={error} />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-violet-500">Assign Category Admins</h1>
+    <div className="relative min-h-screen bg-background">
+      <AmbientBackground grid={false} />
 
-      {success && (
-        <p
-          role="status"
-          className="mb-4 p-3 text-green-700 bg-green-900/20 border border-green-500 rounded-lg"
-        >
-          {success}
-        </p>
-      )}
+      <div className="relative z-10 p-6 max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-on-surface mb-6 font-headline-lg">
+          Assign Category Admins
+        </h1>
 
-      {categories.length === 0 && !loading && !error && (
-        <p className="text-slate-400">All categories have an admin assigned.</p>
-      )}
+        {success && <Alert variant="success" message={success} className="mb-4" />}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {categories.map((category) => {
-          const busy = assigningId === category.id
-          const studentsForCategory = studentsByCategory[category.id] || []
-          const filtered = studentsForCategory.filter(
-            (student) =>
-              student.name.toLowerCase().includes(searchByCat[category.id]?.toLowerCase() || '') ||
-              student.email.toLowerCase().includes(searchByCat[category.id]?.toLowerCase() || '')
-          )
+        {categories.length === 0 && <EmptyState icon="admin_panel_settings" title="No categories found." />}
 
-          return (
-            <div
-              key={category.id}
-              className="bg-glass border border-glass-border rounded-xl shadow-glass p-6"
-            >
-              <h3 className="text-xl font-semibold mb-4 text-violet-400">{category.name}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {categories.map((category) => {
+            const busy = assigningId === category.id
+            const studentsForCategory = studentsByCategory[category.id] || []
+            const filtered = studentsForCategory.filter(
+              (student) =>
+                student.name.toLowerCase().includes(searchByCat[category.id]?.toLowerCase() || '') ||
+                student.email.toLowerCase().includes(searchByCat[category.id]?.toLowerCase() || '')
+            )
 
-              <div className="space-y-3">
-                <div>
-                  <label htmlFor={`search-${category.id}`} className="block text-sm font-medium text-slate-300 mb-1">
-                    Assign an admin
-                  </label>
-                  <input
-                    id={`search-${category.id}`}
-                    type="search"
-                    placeholder="Search by name or email..."
-                    value={searchByCat[category.id] || ''}
-                    onChange={(e) => setSearch(category.id, e.target.value)}
-                    disabled={busy || studentsForCategory.length === 0}
-                    className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  />
+            return (
+              <Card key={category.id}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-on-surface">{category.name}</h3>
+
+                  {category.admin ? (
+                    <div className="text-right">
+                      <p className="text-sm text-on-surface">
+                        <strong className="text-on-surface">{category.admin.name}</strong>
+                        <br />
+                        <span className="text-on-surface-variant text-xs">{category.admin.email}</span>
+                      </p>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => openRemoveConfirm(category.id)}
+                        disabled={busy}
+                      >
+                        Remove admin
+                      </Button>
+                    </div>
+                  ) : (
+                    <EmptyState icon="person_add" title="— None assigned" />
+                  )}
                 </div>
 
-                <select
-                  value={selectedByCat[category.id] || ''}
-                  onChange={(e) => setSelected(category.id, e.target.value)}
-                  disabled={busy || studentsForCategory.length === 0}
-                  className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                >
-                  <option value="" disabled>
-                    {studentsForCategory.length === 0
-                      ? '— No students —'
-                      : '-- Select a user --'}
-                  </option>
-                  {filtered.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>
-                      {candidate.name} ({candidate.email})
-                    </option>
-                  ))}
-                </select>
+                {!category.admin && (
+                  <div className="space-y-3">
+                    <FormField
+                      type="search"
+                      placeholder="Search by name or email..."
+                      value={searchByCat[category.id] || ''}
+                      onChange={(e) => setSearch(category.id, e.target.value)}
+                      disabled={busy || studentsForCategory.length === 0}
+                    />
 
-                <button
-                  type="button"
-                  onClick={() => handleAssign(category)}
-                  disabled={busy || !selectedByCat[category.id] || studentsForCategory.length === 0}
-                  className="w-full px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-violet disabled:opacity-50"
-                >
-                  {busy ? 'Assigning...' : 'Assign'}
-                </button>
+                    <select
+                      value={selectedByCat[category.id] || ''}
+                      onChange={(e) => setSelected(category.id, e.target.value)}
+                      disabled={busy || studentsForCategory.length === 0}
+                      className="w-full px-3 py-2 rounded-xl bg-surface-container-high text-on-surface border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="" disabled>-- Select a user --</option>
+                      {filtered.length === 0 ? (
+                        <option value="" disabled>No matching students</option>
+                      ) : (
+                        filtered.map((candidate) => (
+                          <option key={candidate.id} value={candidate.id}>
+                            {candidate.name} ({candidate.email})
+                          </option>
+                        ))
+                      )}
+                    </select>
 
-                {!candidatesLoading && studentsForCategory.length === 0 && (
-                  <p className="text-xs text-slate-500 mt-2">
-                    No students in this category to assign as an admin.
-                  </p>
+                    <Button
+                      variant="primary"
+                      onClick={() => handleAssign(category.id)}
+                      disabled={busy || !selectedByCat[category.id] || studentsForCategory.length === 0}
+                      fullWidth
+                    >
+                      {busy ? 'Assigning...' : 'Assign'}
+                    </Button>
+
+                    {studentsForCategory.length === 0 && !candidatesLoading && (
+                      <p className="text-xs text-on-surface-muted mt-2">
+                        No students in this category to assign as an admin.
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
-            </div>
-          )
-        })}
+
+                {studentsForCategory.length > 0 && studentsForCategory.length === filtered.length &&
+                  !category.admin && (
+                    <p className="text-xs text-on-surface-muted mt-2">
+                      Showing all {studentsForCategory.length} available student{studentsForCategory.length !== 1 ? 's' : ''}
+                    </p>
+                  )}
+              </Card>
+            )
+          })}
+        </div>
       </div>
+
+      {/* Remove Admin Confirmation Modal */}
+      <Modal
+        isOpen={showRemoveConfirm !== null}
+        onClose={() => setShowRemoveConfirm(null)}
+        title="Remove Admin"
+      >
+        <p className="text-on-surface mb-4">
+          Are you sure you want to remove the admin from{" "}
+          <strong className="text-on-surface">
+            {categories.find((c) => c.id === showRemoveConfirm)?.name}
+          </strong>
+          ?
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => setShowRemoveConfirm(null)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={() => handleDeassign(showRemoveConfirm)} loading={assigningId === showRemoveConfirm}>
+            Remove
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }
