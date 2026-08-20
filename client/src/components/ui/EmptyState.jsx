@@ -4,7 +4,7 @@ const EmptyState = React.forwardRef(function EmptyState(
   { 
     icon = 'sentiment_satisfied',
     title = 'Nothing here yet',
-    message = 'There's nothing to show in this section.',
+    message = "There's nothing to show in this section.",
     actionLabel,
     onAction,
     className = '',

@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
-import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
+import api from '../../api/axios'
+import AmbientBackground from '../../components/AmbientBackground'
+import Card from '../../components/ui/Card'
+import Alert from '../../components/ui/Alert'
+import Modal from '../../components/ui/Modal'
+import Button from '../../components/ui/Button'
+import DataTable from '../../components/ui/DataTable'
+import EmptyState from '../../components/ui/EmptyState'
+import FormField from '../../components/ui/FormField'
+import Badge from '../../components/ui/Badge'
 
-// Enrollment approval page. Works for both:
-//  - category_admin: pending enrollments for their own category only.
-//  - super_admin:    pending enrollments across ALL categories, with a
-//                    category filter dropdown (passes ?categoryId=).
 function EnrollmentRequests() {
   const { user } = useAuth()
   const isSuperAdmin = user?.role === 'super_admin'
@@ -16,12 +21,13 @@ function EnrollmentRequests() {
   const [success, setSuccess] = useState(null)
   const [actingId, setActingId] = useState(null)
 
-  // Category filter (super_admin only).
   const [categories, setCategories] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
 
-  // category_admin shouldn't send a categoryId — the server scopes the query
-  // to their own category automatically.
+  const [rejectCommentId, setRejectCommentId] = useState(null)
+  const [rejectComment, setRejectComment] = useState('')
+  const [showRejectModal, setShowRejectModal] = useState(false)
+
   const getFilterParams = () => {
     if (!isSuperAdmin || !selectedCategoryId) return {}
     return { categoryId: selectedCategoryId }
@@ -35,12 +41,12 @@ function EnrollmentRequests() {
         const res = await api.get('/admin/enrollments/pending', {
           params: getFilterParams(),
         })
-        if (!cancelled) setRequests(res.data.enrollments)
+        if (!cancelled) setRequests(res.data.enrollments || [])
       } catch (err) {
         if (!cancelled) {
           setError(
             err.response?.data?.error ||
-              'Failed to load enrollment requests. Please try again.'
+            'Failed to load enrollment requests. Please try again.'
           )
         }
       } finally {
@@ -54,7 +60,6 @@ function EnrollmentRequests() {
     }
   }, [selectedCategoryId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load the category list for the super_admin filter dropdown.
   useEffect(() => {
     if (!isSuperAdmin) return
 
@@ -62,9 +67,9 @@ function EnrollmentRequests() {
     const loadCategories = async () => {
       try {
         const res = await api.get('/categories')
-        if (!cancelled) setCategories(res.data.categories)
+        if (!cancelled) setCategories(res.data.categories || [])
       } catch {
-        // Non-blocking — the page still works without the filter dropdown.
+        // Non-blocking - the page still works without the filter dropdown
       }
     }
 
@@ -74,157 +79,204 @@ function EnrollmentRequests() {
     }
   }, [isSuperAdmin])
 
+  const formatDate = (value) => {
+    return value
+      ? new Date(value).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : 'Unknown'
+  }
+
   const handleApprove = async (request) => {
     setError(null)
     setSuccess(null)
     setActingId(request.id)
     try {
-      await api.patch(`/admin/enrollments/${request.id}/approve`)
+      await api.patch('/admin/enrollments/' + request.id + '/approve')
       setRequests((prev) => prev.filter((r) => r.id !== request.id))
       setSuccess(
-        `Approved ${request.student?.name}'s enrollment in "${request.course?.title}".`
+        'Approved ' + (request.student?.name || 'the student') + '\'s enrollment in "' + (request.course?.title || 'the course') + '".'
       )
     } catch (err) {
       setError(
         err.response?.data?.error ||
-          'Failed to approve enrollment. Please try again.'
+        'Failed to approve enrollment. Please try again.'
       )
     } finally {
       setActingId(null)
     }
   }
 
-  const handleReject = async (request) => {
-    const reason = window.prompt(
-      `Enter a reason for rejecting ${request.student?.name}'s enrollment (optional):`
-    )
-    // null means the user cancelled the prompt — do nothing.
-    if (reason === null) return
+  const openRejectModal = (request) => {
+    setRejectCommentId(request.id)
+    setRejectComment('')
+    setShowRejectModal(true)
+  }
 
+  const handleReject = async () => {
+    const request = requests.find((r) => r.id === rejectCommentId)
+    if (!request) return
+
+    const reason = rejectComment.trim()
     setError(null)
     setSuccess(null)
     setActingId(request.id)
     try {
-      await api.patch(`/admin/enrollments/${request.id}/reject`, { reason })
+      await api.patch('/admin/enrollments/' + request.id + '/reject', { reason })
       setRequests((prev) => prev.filter((r) => r.id !== request.id))
-      setSuccess(`Rejected ${request.student?.name}'s enrollment.`)
+      setSuccess(
+        'Rejected ' + (request.student?.name || 'the student') + '\'s enrollment in "' + (request.course?.title || 'the course') + '".'
+      )
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          'Failed to reject enrollment. Please try again.'
+        err.response?.data?.error || 'Failed to reject enrollment. Please try again.'
       )
     } finally {
       setActingId(null)
+      setShowRejectModal(false)
+      setRejectCommentId(null)
+      setRejectComment('')
     }
   }
 
-  const formatDate = (value) => {
-    if (!value) return '—'
-    const date = new Date(value)
-    return Number.isNaN(date.getTime())
-      ? '—'
-      : date.toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        })
-  }
+  const columns = [
+    {
+      key: 'student',
+      header: 'Student',
+      render: (value, row) => row.student?.name || '-',
+    },
+    {
+      key: 'course',
+      header: 'Course',
+      render: (value, row) => row.course?.title || '-',
+    },
+    {
+      key: 'requested_at',
+      header: 'Requested Date',
+      render: (value) => formatDate(value),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (_, row) => (
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => handleApprove(row)}
+            disabled={actingId === row.id}
+          >
+            Approve
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openRejectModal(row)}
+            disabled={actingId === row.id}
+          >
+            Reject
+          </Button>
+        </div>
+      ),
+    },
+  ]
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-violet-500">Loading...</div>
+      <div className="relative min-h-screen bg-background">
+        <AmbientBackground grid={false} />
+        <div className="relative z-10 p-6">
+          <p className="text-on-surface">Loading enrollment requests...</p>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <p className="text-red-500">{error}</p>
+      <div className="relative min-h-screen bg-background">
+        <AmbientBackground grid={false} />
+        <div className="relative z-10 p-6">
+          <Alert variant="error" message={error} />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-violet-500">Enrollment Requests</h1>
+    <div className="relative min-h-screen bg-background">
+      <AmbientBackground grid={false} />
 
-      {success && (
-        <p
-          role="status"
-          className="mb-4 p-3 text-green-700 bg-green-900/20 border border-green-500 rounded-lg"
-        >
-          {success}
-        </p>
-      )}
-
-      {isSuperAdmin && (
-        <div className="mb-4">
-          <label htmlFor="category-filter" className="text-slate-300 mr-2">
-            Filter by category:
-          </label>
-          <select
-            id="category-filter"
-            value={selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-            className="px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
-          >
-            <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+      <div className="relative z-10 p-6">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-on-surface font-headline-lg">
+              Enrollment Requests
+            </h1>
+            <p className="text-on-surface-variant">
+              {requests.length} pending request{requests.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
-      )}
 
-      {requests.length === 0 && <p className="text-slate-400">No pending enrollment requests.</p>}
+        {success && (
+          <Alert variant="success" message={success} className="mb-4" />
+        )}
 
-      {requests.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-glass border border-glass-border rounded-xl">
-            <thead>
-              <tr className="bg-slate-800/50">
-                <th className="px-4 py-3 text-left text-slate-300">Student</th>
-                <th className="px-4 py-3 text-left text-slate-300">Course</th>
-                <th className="px-4 py-3 text-left text-slate-300">Requested Date</th>
-                <th className="px-4 py-3 text-left text-slate-300">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requests.map((request) => (
-                <tr key={request.id} className="border-t border-glass-border">
-                  <td className="px-4 py-3 text-slate-100">{request.student?.name || '—'}</td>
-                  <td className="px-4 py-3 text-slate-300">{request.course?.title || '—'}</td>
-                  <td className="px-4 py-3 text-slate-300">{formatDate(request.enrolled_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(request)}
-                        disabled={actingId === request.id}
-                        className="px-3 py-1 text-sm text-green-600 hover:bg-green-900/20 border border-green-500/50 rounded transition-violet disabled:opacity-50"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleReject(request)}
-                        disabled={actingId === request.id}
-                        className="px-3 py-1 text-sm text-yellow-600 hover:bg-yellow-900/20 border border-yellow-500/50 rounded transition-violet disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+        {isSuperAdmin && (
+          <div className="mb-4">
+            <label htmlFor="category-filter" className="text-on-surface-variant mr-2">
+              Filter by category:
+            </label>
+            <select
+              id="category-filter"
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-surface-container-high text-on-surface border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </select>
+          </div>
+        )}
+
+        {requests.length === 0 && <EmptyState icon="hourglass_bottom" title="No pending enrollment requests." />}
+
+        {requests.length > 0 && (
+          <Card>
+            <DataTable columns={columns} data={requests} />
+          </Card>
+        )}
+
+        <Modal
+          isOpen={showRejectModal}
+          onClose={() => setShowRejectModal(false)}
+          title="Reject Enrollment Request"
+        >
+          <FormField
+            label="Reason for rejection (optional)"
+            value={rejectComment}
+            onChange={(e) => setRejectComment(e.target.value)}
+            as="textarea"
+            rows={3}
+            placeholder="Provide feedback to the student..."
+          />
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="ghost" onClick={() => setShowRejectModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleReject} loading={actingId === rejectCommentId}>
+              Reject
+            </Button>
+          </div>
+        </Modal>
+      </div>
     </div>
   )
 }
