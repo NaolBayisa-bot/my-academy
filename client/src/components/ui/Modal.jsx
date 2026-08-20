@@ -16,7 +16,6 @@ const Modal = React.forwardRef(function Modal(
 ) {
   const modalRef = useRef(null)
   const previousActiveElement = useRef(null)
-  const [isBackgroundLocked, setIsBackgroundLocked] = useState(false)
 
   const sizes = {
     sm: 'max-w-sm',
@@ -26,53 +25,35 @@ const Modal = React.forwardRef(function Modal(
     full: 'max-w-full',
   }
 
-  // Handle ESC key press
   const handleKeyDown = useCallback((event) => {
     if (event.key === 'Escape' && closeOnBackdrop) {
       onClose?.()
     }
   }, [onClose, closeOnBackdrop])
 
-  // Focus trap
   useEffect(() => {
     if (isOpen && modalRef.current) {
-      // Save previous active element
       previousActiveElement.current = document.activeElement
-      
-      // Focus the modal
       modalRef.current.focus()
-      
-      // Lock body scroll
-      setIsBackgroundLocked(true)
       document.body.style.overflow = 'hidden'
-      
-      // Add keyboard listener
       document.addEventListener('keydown', handleKeyDown)
     }
 
     return () => {
-      // Restore previous active element
       if (previousActiveElement.current) {
         previousActiveElement.current.focus()
       }
-      
-      // Unlock body scroll
-      setIsBackgroundLocked(false)
       document.body.style.overflow = ''
-      
-      // Remove keyboard listener
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, handleKeyDown])
 
-  // Handle backdrop click
   const handleBackdropClick = (event) => {
     if (closeOnBackdrop && event.target === event.currentTarget) {
       onClose?.()
     }
   }
 
-  // Don't render if closed
   if (!isOpen) return null
 
   return (
@@ -82,24 +63,12 @@ const Modal = React.forwardRef(function Modal(
       onClick={handleBackdropClick}
       {...props}
     >
-      {/* Backdrop with blur */}
       <div className="absolute inset-0 bg-background/80 backdrop-blur-md" />
       
-      {/* Modal content */}
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`
-          relative bg-surface-container-high/40 
-          backdrop-blur-2xl 
-          border border-outline-variant/30 
-          rounded-2xl 
-          shadow-glass-max 
-          w-full 
-          ${sizes[props.size]}
-          focus:outline-none
-          ${className}
-        `}
+        className={"relative bg-surface-container-high/40 backdrop-blur-2xl border border-outline-variant/30 rounded-2xl shadow-glass w-full " + sizes[size] + " focus:outline-none " + className}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
