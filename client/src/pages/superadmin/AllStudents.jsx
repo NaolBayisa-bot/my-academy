@@ -104,111 +104,129 @@ function AllStudents() {
     : []
 
   const renderStudentTable = (students) => (
-    <table style={tableStyle}>
-      <thead>
-        <tr>
-          <th style={thStyle}>Name</th>
-          <th style={thStyle}>Email</th>
-          <th style={thStyle}>Current Course</th>
-          <th style={thStyle}>Enrollment Status</th>
-          <th style={thStyle}>Account Status</th>
-          {isSuperAdmin && <th style={thStyle}>Actions</th>}
-        </tr>
-      </thead>
-      <tbody>
-        {students.map((student) => (
-          <tr key={student.id}>
-            <td style={tdStyle}>{student.name}</td>
-            <td style={tdStyle}>{student.email}</td>
-            <td style={tdStyle}>
-              {student.currentEnrollment?.course?.title || '—'}
-            </td>
-            <td style={tdStyle}>
-              {student.currentEnrollment?.status || 'none'}
-            </td>
-            <td style={tdStyle}>
-              <span
-                style={
-                  student.status === 'suspended'
-                    ? suspendedBadgeStyle
-                    : activeBadgeStyle
-                }
-              >
-                {student.status === 'suspended' ? 'Suspended' : 'Active'}
-              </span>
-            </td>
-            {isSuperAdmin && (
-              <td style={tdStyle}>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {student.status === 'suspended' ? (
-                    <button
-                      type="button"
-                      onClick={() => handleActivate(student)}
-                      disabled={actingId === student.id}
-                    >
-                      Restore
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleSuspend(student)}
-                      disabled={actingId === student.id}
-                    >
-                      Suspend
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    disabled={actingId === student.id}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Permanently delete ${student.name} (${student.email})? This removes their account and any data tied to it. This cannot be undone.`
-                        )
-                      ) {
-                        handleDeleteUser(student)
-                      }
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
-            )}
+    <div className="overflow-x-auto">
+      <table className="min-w-full bg-glass border border-glass-border rounded-xl">
+        <thead>
+          <tr className="bg-slate-800/50">
+            <th className="px-4 py-3 text-left text-slate-300 font-medium">Name</th>
+            <th className="px-4 py-3 text-left text-slate-300 font-medium">Email</th>
+            <th className="px-4 py-3 text-left text-slate-300 font-medium">Current Course</th>
+            <th className="px-4 py-3 text-left text-slate-300 font-medium">Enrollment Status</th>
+            <th className="px-4 py-3 text-left text-slate-300 font-medium">Account Status</th>
+            {isSuperAdmin && <th className="px-4 py-3 text-left text-slate-300 font-medium">Actions</th>}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {students.map((student) => (
+            <tr key={student.id} className="border-t border-glass-border">
+              <td className="px-4 py-3 text-slate-100">{student.name}</td>
+              <td className="px-4 py-3 text-slate-300">{student.email}</td>
+              <td className="px-4 py-3 text-slate-300">
+                {student.currentEnrollment?.course?.title || '—'}
+              </td>
+              <td className="px-4 py-3 text-slate-300">
+                {student.currentEnrollment?.status || 'none'}
+              </td>
+              <td className="px-4 py-3">
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    student.status === 'suspended'
+                      ? 'text-yellow-600 bg-yellow-900/20'
+                      : 'text-green-600 bg-green-900/20'
+                  }`}
+                >
+                  {student.status === 'suspended' ? 'Suspended' : 'Active'}
+                </span>
+              </td>
+              {isSuperAdmin && (
+                <td className="px-4 py-3">
+                  <div className="flex gap-2">
+                    {student.status === 'suspended' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleActivate(student)}
+                        disabled={actingId === student.id}
+                        className="px-3 py-1 text-sm text-green-600 hover:bg-green-900/20 rounded transition-violet disabled:opacity-50"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSuspend(student)}
+                        disabled={actingId === student.id}
+                        className="px-3 py-1 text-sm text-yellow-600 hover:bg-yellow-900/20 rounded transition-violet disabled:opacity-50"
+                      >
+                        Suspend
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={actingId === student.id}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Permanently delete ${student.name} (${student.email})? This removes their account and any data tied to it. This cannot be undone.`
+                          )
+                        ) {
+                          handleDeleteUser(student)
+                        }
+                      }}
+                      className="px-3 py-1 text-sm text-red-500 hover:bg-red-900/20 rounded transition-violet disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>{isSuperAdmin ? 'All Students' : 'My Students'}</h1>
+    <div className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">
+        {isSuperAdmin ? 'All Students' : 'My Students'}
+      </h1>
 
       {actionSuccess && (
-        <p role="status" style={successStyle}>
+        <p
+          role="status"
+          className="mb-4 p-3 text-green-700 bg-green-900/20 border border-green-500 rounded-lg"
+        >
           {actionSuccess}
         </p>
       )}
-      {actionError && <p style={{ color: 'red' }}>{actionError}</p>}
+      {actionError && <p className="mb-4 text-red-500">{actionError}</p>}
 
       {visibleCategories.map((category) => {
         const students = studentsByCategory[category.id] || []
         return (
-          <section key={category.id} style={{ marginBottom: '28px' }}>
-            <h2 style={sectionTitleStyle}>{category.name}</h2>
+          <section key={category.id} className="mb-10">
+            <h2 className="text-xl font-semibold mb-4 text-violet-400 border-b border-glass-border pb-2">
+              {category.name}
+            </h2>
             {students.length === 0 ? (
-              <p style={{ color: '#666' }}>
-                No students in this category yet.
-              </p>
+              <p className="text-slate-500">No students in this category yet.</p>
             ) : (
               renderStudentTable(students)
             )}
@@ -217,55 +235,15 @@ function AllStudents() {
       })}
 
       {uncategorized.length > 0 && (
-        <section key={NULL_CATEGORY_ID} style={{ marginBottom: '28px' }}>
-          <h2 style={sectionTitleStyle}>Uncategorized</h2>
+        <section key={NULL_CATEGORY_ID} className="mb-10">
+          <h2 className="text-xl font-semibold mb-4 text-violet-400 border-b border-glass-border pb-2">
+            Uncategorized
+          </h2>
           {renderStudentTable(uncategorized)}
         </section>
       )}
     </div>
   )
-}
-
-const tableStyle = {
-  borderCollapse: 'collapse',
-  width: '100%',
-  maxWidth: '840px',
-}
-
-const thStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-  background: '#f5f5f5',
-}
-
-const tdStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
-}
-
-const sectionTitleStyle = {
-  borderBottom: '1px solid #ccc',
-  paddingBottom: '4px',
-}
-
-const successStyle = {
-  color: 'green',
-  background: '#e8f5e9',
-  border: '1px solid #66bb6a',
-  borderRadius: '6px',
-  padding: '10px 12px',
-  maxWidth: '720px',
-}
-
-const activeBadgeStyle = {
-  color: '#2e7d32',
-  fontWeight: 'bold',
-}
-
-const suspendedBadgeStyle = {
-  color: '#b26a00',
-  fontWeight: 'bold',
 }
 
 export default AllStudents

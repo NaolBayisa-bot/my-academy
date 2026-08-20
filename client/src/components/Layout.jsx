@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeToggleContext'
 
 // Navbar links shown per role. The Layout only decides which links are
 // visible; access is still enforced by each route's ProtectedRoute.
@@ -28,47 +29,54 @@ const NAV_LINKS = {
 
 function Layout({ children }) {
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const links = NAV_LINKS[user?.role] || []
 
   return (
-    <div>
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
-          padding: '12px 20px',
-          background: '#1f2937',
-          color: '#fff',
-        }}
-      >
-        <Link to="/" style={{ color: '#fff', fontWeight: 'bold', textDecoration: 'none' }}>
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+      <header className="flex items-center justify-between gap-4 px-6 py-4 bg-glass border-b border-glass-border shadow-glass">
+        <Link to="/" className="text-2xl font-bold text-violet-500 hover:text-violet-400 transition-violet no-underline">
           HUISHUB
         </Link>
-        <nav style={{ display: 'flex', gap: '16px' }}>
+
+        <nav className="flex gap-4">
           {links.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
-              style={({ isActive }) => ({
-                color: '#fff',
-                textDecoration: 'none',
-                fontWeight: isActive ? 'bold' : 'normal',
-                borderBottom: isActive ? '2px solid #fff' : 'none',
-              })}
+              className={({ isActive }) =>
+                `text-slate-200 hover:text-white transition-violet ${
+                  isActive ? 'border-b-2 border-white font-bold' : ''
+                }`
+              }
             >
               {link.label}
             </NavLink>
           ))}
         </nav>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span>{user?.name}</span>
-          <button type="button" onClick={logout} style={{ cursor: 'pointer' }}>
+
+        <div className="flex items-center gap-3">
+          <span className="text-slate-200">{user?.name}</span>
+          <button
+            type="button"
+            onClick={logout}
+            className="px-4 py-2 text-sm font-medium text-slate-200 hover:bg-glass border border-glass-border rounded-lg transition-violet cursor-pointer"
+          >
             Logout
+          </button>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="p-2 text-slate-200 hover:bg-glass border border-glass-border rounded-lg transition-violet cursor-pointer"
+            aria-label="Toggle theme"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>
       </header>
-      <main style={{ padding: '20px' }}>{children}</main>
+
+      <main className="flex-1 p-6">{children}</main>
     </div>
   )
 }

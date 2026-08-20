@@ -64,30 +64,40 @@ function PostsFeed() {
     })
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Posts</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Posts</h1>
 
       {posts.length === 0 ? (
-        <p>No posts yet.</p>
+        <p className="text-slate-400">No posts yet.</p>
       ) : (
-        <ul style={listStyle}>
+        <ul className="list-none space-y-4">
           {posts.map((post) => (
-            <li key={post.id} style={itemStyle}>
-              <h3 style={{ marginTop: '0' }}>{post.title}</h3>
-              <p style={{ margin: '4px 0' }}>{post.content}</p>
-              <p style={metaStyle}>
-                <span style={{ fontWeight: 'bold' }}>
+            <li key={post.id} className="bg-glass border border-glass-border rounded-xl p-4 shadow-glass">
+              <h3 className="text-xl font-semibold text-slate-100 mb-2">{post.title}</h3>
+              <p className="text-slate-300 mb-3">{post.content}</p>
+              <p className="text-sm text-slate-400 flex items-center gap-2">
+                <span className="font-medium text-violet-400">
                   {post.author?.name || 'Unknown author'}
-                </span>{' '}
-                — {categoryLabel(post)} ·{' '}
+                </span>
+                <span>—</span>
+                <span>{categoryLabel(post)}</span>
+                <span>·</span>
                 <span>{formatDate(post.created_at)}</span>
               </p>
             </li>
@@ -96,25 +106,6 @@ function PostsFeed() {
       )}
     </div>
   )
-}
-
-const listStyle = {
-  listStyle: 'none',
-  padding: 0,
-  margin: 0,
-}
-
-const itemStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '12px',
-  marginBottom: '12px',
-}
-
-const metaStyle = {
-  fontSize: '12px',
-  color: '#666',
-  margin: '0',
 }
 
 export default PostsFeed

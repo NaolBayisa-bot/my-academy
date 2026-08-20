@@ -2,6 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import api from '../../api/axios'
 
+function renderTypeSelect(value, onChange) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="px-2 py-1 bg-glass border border-glass-border rounded text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+    >
+      <option value="video">Video</option>
+      <option value="text">Text</option>
+      <option value="link">Link</option>
+    </select>
+  )
+}
+
 function CourseDetail() {
   const { courseId } = useParams()
   const location = useLocation()
@@ -127,93 +141,179 @@ function CourseDetail() {
     }
   }
 
-  const renderTypeSelect = (value, onChange) => (
-    <select value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="video">video</option>
-      <option value="download">download</option>
-    </select>
-  )
-
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Lessons: {course?.title || 'Course'}</h1>
-      <Link to="/admin/courses">Back to Courses</Link>
+    <div className="p-6 max-w-3xl mx-auto">
+      <div className="flex items-center gap-4 mb-6">
+        <Link
+          to="/admin/courses"
+          className="text-violet-500 hover:text-violet-400 transition-violet"
+        >
+          ← Back to Courses
+        </Link>
+        <h1 className="text-2xl font-bold text-violet-500">
+          Lessons: {course?.title || 'Course'}
+        </h1>
+      </div>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="mb-4 text-red-500">{error}</p>}
 
-      <div style={{ marginTop: '12px' }}>
-        <button type="button" onClick={() => setShowAdd((v) => !v)}>
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => setShowAdd((v) => !v)}
+          className="px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-violet cursor-pointer"
+        >
           {showAdd ? 'Cancel' : 'Add Lesson'}
         </button>
       </div>
 
       {showAdd && (
-        <form onSubmit={handleAdd} style={{ margin: '12px 0', padding: '12px', border: '1px solid #ccc', maxWidth: '480px' }}>
-          <div>
-            <label>
-              Title
-              <input type="text" value={addTitle} onChange={(e) => setAddTitle(e.target.value)} required />
-            </label>
+        <form onSubmit={handleAdd} className="mb-6 p-4 bg-glass border border-glass-border rounded-xl shadow-glass max-w-md">
+          <div className="mb-3">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+            <input
+              type="text"
+              value={addTitle}
+              onChange={(e) => setAddTitle(e.target.value)}
+              required
+              className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
-          <div>
-            <label>Type {renderTypeSelect(addType, setAddType)}</label>
+          <div className="mb-3">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
+            {renderTypeSelect(addType, setAddType)}
           </div>
-          <div>
-            <label>
-              URL
-              <input type="url" value={addUrl} onChange={(e) => setAddUrl(e.target.value)} required />
-            </label>
+          <div className="mb-3">
+            <label className="block text-sm font-medium text-slate-300 mb-1">URL</label>
+            <input
+              type="url"
+              value={addUrl}
+              onChange={(e) => setAddUrl(e.target.value)}
+              required
+              className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
-          <div>
-            <label>
-              Order
-              <input type="number" value={addOrder} onChange={(e) => setAddOrder(e.target.value)} />
-            </label>
+          <div className="mb-3">
+            <label className="block text-sm font-medium text-slate-300 mb-1">Order</label>
+            <input
+              type="number"
+              value={addOrder}
+              onChange={(e) => setAddOrder(e.target.value)}
+              className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
           </div>
-          <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save Lesson'}</button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-violet disabled:opacity-50"
+          >
+            {submitting ? 'Saving...' : 'Save Lesson'}
+          </button>
         </form>
       )}
 
-      {lessons.length === 0 && !loading && <p>No lessons in this course yet.</p>}
+      {lessons.length === 0 && !loading && (
+        <p className="text-slate-400">No lessons in this course yet.</p>
+      )}
 
       {lessons.map((lesson) => (
-        <div key={lesson.id} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '12px', marginBottom: '8px', maxWidth: '480px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <strong>{lesson.title}</strong>
-            <span>({lesson.type})</span>
-            {lesson.order_index != null && <span>#{lesson.order_index}</span>}
-            <a href={lesson.url} target="_blank" rel="noopener noreferrer">Open</a>
-            <button type="button" onClick={() => startEdit(lesson)} disabled={submitting}>Edit</button>
-            <button type="button" onClick={() => handleDelete(lesson.id)} disabled={submitting}>Delete</button>
+        <div
+          key={lesson.id}
+          className="bg-glass border border-glass-border rounded-xl p-4 mb-4 max-w-md"
+        >
+          <div className="flex items-center gap-3">
+            <strong className="text-slate-100">{lesson.title}</strong>
+            <span className="text-slate-500">({lesson.type})</span>
+            {lesson.order_index != null && <span className="text-slate-500">#{lesson.order_index}</span>}
+            <a
+              href={lesson.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-violet-500 hover:text-violet-400 transition-violet text-sm"
+            >
+              Open
+            </a>
+            <button
+              type="button"
+              onClick={() => startEdit(lesson)}
+              disabled={submitting}
+              className="px-2 py-1 text-xs text-slate-300 hover:bg-glass border border-glass-border rounded transition-violet disabled:opacity-50"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDelete(lesson.id)}
+              disabled={submitting}
+              className="px-2 py-1 text-xs text-red-500 hover:bg-red-900/20 border border-red-500/50 rounded transition-violet disabled:opacity-50"
+            >
+              Delete
+            </button>
           </div>
 
           {editingId === lesson.id && (
-            <form onSubmit={(e) => handleUpdate(e, lesson.id)} style={{ marginTop: '12px', padding: '12px', border: '1px solid #ccc' }}>
-              <div>
-                <label>
-                  Title
-                  <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required />
-                </label>
+            <form
+              onSubmit={(e) => handleUpdate(e, lesson.id)}
+              className="mt-4 p-3 bg-glass border border-glass-border rounded-lg"
+            >
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
               </div>
-              <div><label>Type {renderTypeSelect(editType, setEditType)}</label></div>
-              <div>
-                <label>
-                  URL
-                  <input type="url" value={editUrl} onChange={(e) => setEditUrl(e.target.value)} required />
-                </label>
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
+                {renderTypeSelect(editType, setEditType)}
               </div>
-              <div>
-                <label>
-                  Order
-                  <input type="number" value={editOrder} onChange={(e) => setEditOrder(e.target.value)} />
-                </label>
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-300 mb-1">URL</label>
+                <input
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
               </div>
-              <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save'}</button>
-              <button type="button" onClick={cancelEdit} disabled={submitting}>Cancel</button>
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-slate-300 mb-1">Order</label>
+                <input
+                  type="number"
+                  value={editOrder}
+                  onChange={(e) => setEditOrder(e.target.value)}
+                  className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-3 py-1 text-sm text-white bg-violet-500 hover:bg-violet-600 rounded transition-violet disabled:opacity-50"
+                >
+                  {submitting ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  disabled={submitting}
+                  className="px-3 py-1 text-sm text-slate-300 hover:bg-glass border border-glass-border rounded transition-violet disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </form>
           )}
         </div>

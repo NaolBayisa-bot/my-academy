@@ -75,43 +75,44 @@ function BrowseCourses() {
     : 'You have an in-progress course. Finish or withdraw from it before requesting a new enrollment.'
 
   return (
-    <div>
-      <h1>Browse Courses</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Browse Courses</h1>
 
       {hasActiveEnrollment && (
-        <div style={{ padding: '12px', marginBottom: '16px', background: '#fff3cd', border: '1px solid #ffc107' }}>
+        <div className="mb-4 p-3 text-yellow-700 bg-yellow-900/20 border border-yellow-500/50 rounded-lg">
           {bannerMessage}
         </div>
       )}
-      {successMessage && (
-        <p style={{ color: 'green' }}>{successMessage}</p>
-      )}
-      {requestError && <p style={{ color: 'red' }}>{requestError}</p>}
-      {fetchError && <p style={{ color: 'red' }}>{fetchError}</p>}
+      {successMessage && <p className="mb-4 text-green-500">{successMessage}</p>}
+      {requestError && <p className="mb-4 text-red-500">{requestError}</p>}
+      {fetchError && <p className="mb-4 text-red-500">{fetchError}</p>}
 
-      {loading && <div>Loading courses...</div>}
+      {loading && (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <div className="text-violet-500">Loading courses...</div>
+        </div>
+      )}
 
       {!loading && courses.length === 0 && !fetchError && (
-        <p>No courses available in your category yet.</p>
+        <p className="text-slate-400">No courses available in your category yet.</p>
       )}
 
       {courses.map((course) => (
         <div
           key={course.id}
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '12px',
-            maxWidth: '480px',
-          }}
+          className="bg-glass border border-glass-border rounded-xl p-4 mb-4 shadow-glass max-w-md"
         >
-          <h3>{course.title}</h3>
-          <p>{course.description || 'No description provided.'}</p>
+          <h3 className="text-xl font-semibold mb-2 text-slate-100">{course.title}</h3>
+          <p className="text-slate-300 mb-4">{course.description || 'No description provided.'}</p>
           <button
             type="button"
             onClick={() => handleRequest(course)}
             disabled={hasActiveEnrollment || requestingId === course.id}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-violet ${
+              hasActiveEnrollment || requestingId === course.id
+                ? 'text-slate-500 bg-slate-800 cursor-not-allowed'
+                : 'text-white bg-violet-500 hover:bg-violet-600'
+            }`}
           >
             {requestingId === course.id
               ? 'Requesting...'

@@ -1,9 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ─── */
+
+/* DARK palette (default) - applied when .dark class is present on <html> */
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  --color-background: #0f1320;
+  --color-surface-container-lowest: #0a0e1a;
+  --color-surface-container-low: #171b28;
+  --color-surface-container: #1b1f2c;
+  --color-surface-container-high: #262937;
+  --color-surface-container-highest: #313442;
+  --color-surface-dim: #0f1320;
+  --color-surface-bright: #353947;
+  --color-on-surface: #dfe1f4;
+  --color-on-surface-variant: #c9c4d8;
+  --color-primary: #cabeff;
+  --color-primary-container: #947dff;
+  --color-on-primary: #31009a;
+  --color-inverse-primary: #603ce2;
+  --color-primary-fixed: #e6deff;
+  --color-tertiary: #3ae196;
+  --color-tertiary-fixed: #5ffeb0;
+  --color-tertiary-container: #00a66a;
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+  --color-outline: #938ea1;
+  --color-outline-variant: #484555;
+  --color-secondary: #c8c5cd;
+  --color-secondary-container: #49484e;
+  --glow-primary: rgba(124, 92, 255, 0.6);
+  --glow-tertiary: rgba(95, 254, 176, 0.5);
+}
+
+/* LIGHT palette (when .dark class is ABSENT on <html>) */
+html:not(.dark) {
+  --color-background: #f4f5fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eceef7;
+  --color-surface-container: #e4e6f2;
+  --color-surface-container-high: #d8daea;
+  --color-surface-container-highest: #c9cce0;
+  --color-surface-dim: #eceef7;
+  --color-surface-bright: #ffffff;
+  --color-on-surface: #1b1c26;
+  --color-on-surface-variant: #494a58;
+  --color-primary: #5b3df0;
+  --color-primary-container: #4626d9;
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #cabeff;
+  --color-primary-fixed: #e6deff;
+  --color-tertiary: #00875a;
+  --color-tertiary-fixed: #5ffeb0;
+  --color-tertiary-container: #005c3c;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #410002;
+  --color-outline: #767680;
+  --color-outline-variant: #c6c5d0;
+  --color-secondary: #5c5d67;
+  --color-secondary-container: #e2e0eb;
+  --glow-primary: rgba(91, 61, 240, 0.35);
+  --glow-tertiary: rgba(0, 135, 90, 0.3);
+}
+
+/* ─── Global Reset ─── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+}
+
+html {
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
+  font-family: var(--font-inter, Inter, system-ui, sans-serif);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-on-surface);
+  background-color: var(--color-background);
+  overscroll-behavior: none;
+}
+
+/* Hide scrollbars */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  scrollbar-width: none;
+}
+
+/* Typography - Load fonts from Google Fonts via index.html */
+@layer base {
+  :root {
+    --font-geist: 'Geist', sans-serif;
+    --font-inter: 'Inter', sans-serif;
+  }
+}
+
+/* ─── Glassmorphism Utilities ─── */
+@layer utilities {
+  .bg-glass {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .bg-glass {
+    background-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .bg-glass-gradient {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(139, 92, 246, 0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .text-glow-primary {
+    text-shadow: 0 0 8px var(--glow-primary);
+  }
+
+  .text-glow-tertiary {
+    text-shadow: 0 0 8px var(--glow-tertiary);
+  }
+
+  .shadow-glass {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .shadow-glass {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .border-glass {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 }

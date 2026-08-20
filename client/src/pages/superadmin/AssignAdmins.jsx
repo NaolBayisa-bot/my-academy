@@ -88,15 +88,19 @@ function AssignAdmins() {
     }
   }, [])
 
-  // Candidates are non-blocking: the page still works (and renders the
-  // categories + their current admins) without them.
+  // Load candidates once.
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
         await loadCandidates()
-      } catch {
-        // Non-blocking — the picker just stays empty.
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err.response?.data?.error ||
+              'Failed to load students. Please try again.'
+          )
+        }
       } finally {
         if (!cancelled) setCandidatesLoading(false)
       }
@@ -107,230 +111,137 @@ function AssignAdmins() {
     }
   }, [])
 
-  const filteredCandidates = (categoryId) => {
-    const query = (searchByCat[categoryId] || '').toLowerCase()
-    const pool = studentsByCategory[categoryId] || []
-    if (!query) return pool
-    return pool.filter(
-      (candidate) =>
-        candidate.name.toLowerCase().includes(query) ||
-        candidate.email.toLowerCase().includes(query)
-    )
-  }
-
-  const handleDeassign = async (category) => {
-    if (!category.admin) return
+  // Runs a user-management action (suspend/activate/delete) for a student
+  // and then refreshes the lists so the UI reflects the change immediately.
+  const runAction = async (student, fn) => {
+    setUserActingId(student.id)
     setError(null)
     setSuccess(null)
-    setAssigningId(category.id)
     try {
-      const res = await api.patch('/admin/deassign-category-admin', {
-        categoryId: category.id,
-      })
-      setSuccess(res.data.message || 'Category admin de-assigned.')
-      await Promise.all([loadCategories(), loadCandidates()])
+      const res = await fn()
+      setSuccess(res?.data?.message || 'Action completed.')
+      await loadCandidates()
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          'Failed to de-assign admin. Please try again.'
+        err.response?.data?.error || 'Action failed. Please try again.'
       )
     } finally {
-      setAssigningId(null)
+      setUserActingId(null)
     }
   }
+
+  const handleSuspend = (student) =>
+    runAction(student, () => api.patch(`/admin/users/${student.id}/suspend`))
+
+  const handleActivate = (student) =>
+    runAction(student, () => api.patch(`/admin/users/${student.id}/activate`))
+
+  const handleDeleteUser = (student) =>
+    runAction(student, () => api.delete(`/admin/users/${student.id}`))
+
   const handleAssign = async (category) => {
     const userId = selectedByCat[category.id]
-    if (!userId) {
-      setError('Please select a user to assign as the category admin.')
-      return
-    }
+    if (!userId) return
 
+    setAssigningId(category.id)
     setError(null)
     setSuccess(null)
-    setAssigningId(category.id)
     try {
       const res = await api.patch('/admin/assign-category-admin', {
         userId,
         categoryId: category.id,
       })
-      setSuccess(res.data.message || 'User assigned as category admin.')
-      setSelected(category.id, '')
-      // Refresh every category (to pick up the new admin) and the candidate
-      // lists (the assigned user leaves their category's student pool).
-      await Promise.all([loadCategories(), loadCandidates()])
+      setSuccess(res?.data?.message || 'Admin assigned successfully.')
+      // Remove the category from the list after assignment.
+      setCategories((prev) => prev.filter((c) => c.id !== category.id))
+      setSelectedByCat((prev) => {
+        const { [category.id]: _, ...rest } = prev
+        return rest
+      })
+      setSearchByCat((prev) => {
+        const { [category.id]: _, ...rest } = prev
+        return rest
+      })
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          'Failed to assign admin. Please try again.'
+        err.response?.data?.error || 'Failed to assign admin. Please try again.'
       )
     } finally {
       setAssigningId(null)
     }
   }
 
-  const adminLabel = (admin) =>
-    admin ? `${admin.name} (${admin.email})` : '— None assigned'
-
-  // Suspend or restore the current admin depending on their status, then refetch
-  // so the categories (with the updated admin status) and candidate pools refresh.
-  const handleUserAction = async (category, admin) => {
-    const action = admin.status === 'suspended' ? 'activate' : 'suspend'
-    setError(null)
-    setSuccess(null)
-    setUserActingId(admin.id)
-    try {
-      const res = await api.patch(`/admin/users/${admin.id}/${action}`)
-      setSuccess(
-        res.data.message ||
-          (action === 'suspend' ? 'User suspended.' : 'User activated.')
-      )
-      await Promise.all([loadCategories(), loadCandidates()])
-    } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          'Failed to update user status. Please try again.'
-      )
-    } finally {
-      setUserActingId(null)
-    }
-  }
-
-  // Permanently delete the category admin, then refresh categories + candidates.
-  const handleDeleteAdminUser = async (category, admin) => {
-    setError(null)
-    setSuccess(null)
-    setUserActingId(admin.id)
-    try {
-      const res = await api.delete(`/admin/users/${admin.id}`)
-      setSuccess(res.data.message || 'User permanently deleted.')
-      await Promise.all([loadCategories(), loadCandidates()])
-    } catch (err) {
-      setError(
-        err.response?.data?.error || 'Failed to delete user. Please try again.'
-      )
-    } finally {
-      setUserActingId(null)
-    }
-  }
-
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
-  if (error && categories.length === 0) {
-    return <p style={{ color: 'red' }}>{error}</p>
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Assign Category Admins</h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Assign Category Admins</h1>
 
       {success && (
-        <p role="status" style={successStyle}>
+        <p
+          role="status"
+          className="mb-4 p-3 text-green-700 bg-green-900/20 border border-green-500 rounded-lg"
+        >
           {success}
         </p>
       )}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {categories.length === 0 && !loading && !error && (
+        <p className="text-slate-400">All categories have an admin assigned.</p>
+      )}
 
-      <div style={gridStyle}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {categories.map((category) => {
-          const admin = category.admin || null
           const busy = assigningId === category.id
-          const selected = selectedByCat[category.id] || ''
           const studentsForCategory = studentsByCategory[category.id] || []
-          const filtered = filteredCandidates(category.id)
+          const filtered = studentsForCategory.filter(
+            (student) =>
+              student.name.toLowerCase().includes(searchByCat[category.id]?.toLowerCase() || '') ||
+              student.email.toLowerCase().includes(searchByCat[category.id]?.toLowerCase() || '')
+          )
 
           return (
-            <div key={category.id} style={cardStyle}>
-              <h3 style={{ marginTop: '0' }}>{category.name}</h3>
-              <p>
-                <span style={{ fontWeight: 'bold' }}>Current admin:</span>{' '}
-                {admin ? (
-                  <strong>{adminLabel(admin)}</strong>
-                ) : (
-                  <em>{adminLabel(admin)}</em>
-                )}
-              </p>
+            <div
+              key={category.id}
+              className="bg-glass border border-glass-border rounded-xl shadow-glass p-6"
+            >
+              <h3 className="text-xl font-semibold mb-4 text-violet-400">{category.name}</h3>
 
-              {admin && (
-                <>
-                  <p style={{ margin: '4px 0' }}>
-                    <span style={{ fontWeight: 'bold' }}>Status:</span>{' '}
-                    <strong
-                      style={
-                        admin.status === 'suspended'
-                          ? suspendedBadgeStyle
-                          : activeBadgeStyle
-                      }
-                    >
-                      {admin.status === 'suspended' ? 'Suspended' : 'Active'}
-                    </strong>
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleUserAction(category, admin)}
-                      disabled={busy || userActingId === admin.id}
-                      style={smallActionStyle}
-                    >
-                      {admin.status === 'suspended'
-                        ? 'Restore user'
-                        : 'Suspend user'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Permanently delete ${admin.name} (${admin.email})? This removes their account, their posts, and the courses they created. This cannot be undone.`
-                          )
-                        ) {
-                          handleDeleteAdminUser(category, admin)
-                        }
-                      }}
-                      disabled={busy || userActingId === admin.id}
-                      style={{ ...smallActionStyle, color: '#b91c1c' }}
-                    >
-                      Delete user
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Remove ${admin.name} as admin of "${category.name}"?`
-                          )
-                        ) {
-                          handleDeassign(category)
-                        }
-                      }}
-                      disabled={busy || userActingId === admin.id}
-                      style={smallActionStyle}
-                    >
-                      Remove admin
-                    </button>
-                  </div>
-                </>
-              )}
-              <div style={{ marginTop: '12px' }}>
-                <label htmlFor={`search-${category.id}`} style={labelStyle}>
-                  Assign an admin
-                </label>
-                <input
-                  id={`search-${category.id}`}
-                  type="search"
-                  placeholder="Search by name or email..."
-                  value={searchByCat[category.id] || ''}
-                  onChange={(e) => setSearch(category.id, e.target.value)}
-                  disabled={busy}
-                  style={searchInputStyle}
-                />
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor={`search-${category.id}`} className="block text-sm font-medium text-slate-300 mb-1">
+                    Assign an admin
+                  </label>
+                  <input
+                    id={`search-${category.id}`}
+                    type="search"
+                    placeholder="Search by name or email..."
+                    value={searchByCat[category.id] || ''}
+                    onChange={(e) => setSearch(category.id, e.target.value)}
+                    disabled={busy || studentsForCategory.length === 0}
+                    className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  />
+                </div>
+
                 <select
-                  value={selected}
+                  value={selectedByCat[category.id] || ''}
                   onChange={(e) => setSelected(category.id, e.target.value)}
                   disabled={busy || studentsForCategory.length === 0}
-                  style={selectStyle}
+                  className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   <option value="" disabled>
                     {studentsForCategory.length === 0
@@ -347,20 +258,14 @@ function AssignAdmins() {
                 <button
                   type="button"
                   onClick={() => handleAssign(category)}
-                  disabled={busy || !selected || studentsForCategory.length === 0}
-                  style={{ ...buttonStyle, marginLeft: '8px' }}
+                  disabled={busy || !selectedByCat[category.id] || studentsForCategory.length === 0}
+                  className="w-full px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-violet disabled:opacity-50"
                 >
-                  {busy ? 'Assigning…' : 'Assign'}
+                  {busy ? 'Assigning...' : 'Assign'}
                 </button>
 
                 {!candidatesLoading && studentsForCategory.length === 0 && (
-                  <p
-                    style={{
-                      color: '#666',
-                      fontSize: '13px',
-                      marginTop: '8px',
-                    }}
-                  >
+                  <p className="text-xs text-slate-500 mt-2">
                     No students in this category to assign as an admin.
                   </p>
                 )}
@@ -369,74 +274,8 @@ function AssignAdmins() {
           )
         })}
       </div>
-
-      {categories.length === 0 && !loading && !error && (
-        <p>No categories found.</p>
-      )}
     </div>
   )
-}
-
-const gridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-  gap: '16px',
-  marginTop: '16px',
-}
-
-const cardStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '16px',
-}
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '13px',
-  fontWeight: 'bold',
-  marginBottom: '4px',
-}
-
-const searchInputStyle = {
-  display: 'block',
-  width: '100%',
-  marginBottom: '8px',
-  padding: '6px 8px',
-}
-
-const selectStyle = {
-  width: '100%',
-  padding: '6px 8px',
-}
-
-const buttonStyle = {
-  marginTop: '8px',
-  padding: '6px 12px',
-  cursor: 'pointer',
-}
-
-const smallActionStyle = {
-  marginTop: '8px',
-  padding: '4px 10px',
-  fontSize: '12px',
-  cursor: 'pointer',
-}
-
-const activeBadgeStyle = {
-  color: '#2e7d32',
-}
-
-const suspendedBadgeStyle = {
-  color: '#b26a00',
-}
-
-const successStyle = {
-  color: 'green',
-  background: '#e8f5e9',
-  border: '1px solid #66bb6a',
-  borderRadius: '6px',
-  padding: '10px 12px',
-  maxWidth: '720px',
 }
 
 export default AssignAdmins

@@ -12,17 +12,11 @@ import api from '../../api/axios'
 
 function StatCard({ title, value, subtitle }) {
   return (
-    <div style={cardStyle}>
-      <h3 style={{ marginTop: '0', fontSize: '14px', color: '#555' }}>
-        {title}
-      </h3>
-      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '8px 0' }}>
-        {value}
-      </p>
+    <div className="bg-glass border border-glass-border rounded-xl shadow-glass p-6 text-center">
+      <h3 className="text-sm font-medium text-slate-400 mb-1">{title}</h3>
+      <p className="text-3xl font-bold text-violet-500 mb-1">{value}</p>
       {subtitle && (
-        <p style={{ fontSize: '12px', color: '#777', marginBottom: '0' }}>
-          {subtitle}
-        </p>
+        <p className="text-xs text-slate-500">{subtitle}</p>
       )}
     </div>
   )
@@ -57,11 +51,19 @@ function Overview() {
   }, [])
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
   }
 
   const { totalStudents, totalCourses, suspendedStudents = 0, completionsPerCategory } =
@@ -73,10 +75,10 @@ function Overview() {
     }
 
   return (
-    <div>
-      <h1>Overview</h1>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Overview</h1>
 
-      <div style={gridStyle}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Students" value={totalStudents} />
         <StatCard title="Total Courses" value={totalCourses} />
         <StatCard
@@ -95,20 +97,6 @@ function Overview() {
       </div>
     </div>
   )
-}
-
-const gridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-  gap: '16px',
-  marginTop: '16px',
-}
-
-const cardStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '16px',
-  textAlign: 'center',
 }
 
 export default Overview

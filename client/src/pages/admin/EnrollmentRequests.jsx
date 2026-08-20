@@ -131,42 +131,44 @@ function EnrollmentRequests() {
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="p-6">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Enrollment Requests</h1>
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Enrollment Requests</h1>
 
       {success && (
         <p
           role="status"
-          style={{
-            color: 'green',
-            background: '#e8f5e9',
-            border: '1px solid #66bb6a',
-            borderRadius: '6px',
-            padding: '10px 12px',
-            maxWidth: '720px',
-          }}
+          className="mb-4 p-3 text-green-700 bg-green-900/20 border border-green-500 rounded-lg"
         >
           {success}
         </p>
       )}
 
       {isSuperAdmin && (
-        <div style={{ margin: '12px 0' }}>
-          <label htmlFor="category-filter" style={{ marginRight: '8px' }}>
+        <div className="mb-4">
+          <label htmlFor="category-filter" className="text-slate-300 mr-2">
             Filter by category:
           </label>
           <select
             id="category-filter"
             value={selectedCategoryId}
             onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
             <option value="">All Categories</option>
             {categories.map((cat) => (
@@ -178,63 +180,53 @@ function EnrollmentRequests() {
         </div>
       )}
 
-      {requests.length === 0 && <p>No pending enrollment requests.</p>}
+      {requests.length === 0 && <p className="text-slate-400">No pending enrollment requests.</p>}
 
       {requests.length > 0 && (
-        <table
-          style={{ borderCollapse: 'collapse', width: '100%', maxWidth: '840px' }}
-        >
-          <thead>
-            <tr>
-              <th style={thStyle}>Student</th>
-              <th style={thStyle}>Course</th>
-              <th style={thStyle}>Requested Date</th>
-              <th style={thStyle}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((request) => (
-              <tr key={request.id}>
-                <td style={tdStyle}>{request.student?.name || '—'}</td>
-                <td style={tdStyle}>{request.course?.title || '—'}</td>
-                <td style={tdStyle}>{formatDate(request.enrolled_at)}</td>
-                <td style={tdStyle}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleApprove(request)}
-                      disabled={actingId === request.id}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleReject(request)}
-                      disabled={actingId === request.id}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-glass border border-glass-border rounded-xl">
+            <thead>
+              <tr className="bg-slate-800/50">
+                <th className="px-4 py-3 text-left text-slate-300">Student</th>
+                <th className="px-4 py-3 text-left text-slate-300">Course</th>
+                <th className="px-4 py-3 text-left text-slate-300">Requested Date</th>
+                <th className="px-4 py-3 text-left text-slate-300">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {requests.map((request) => (
+                <tr key={request.id} className="border-t border-glass-border">
+                  <td className="px-4 py-3 text-slate-100">{request.student?.name || '—'}</td>
+                  <td className="px-4 py-3 text-slate-300">{request.course?.title || '—'}</td>
+                  <td className="px-4 py-3 text-slate-300">{formatDate(request.enrolled_at)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(request)}
+                        disabled={actingId === request.id}
+                        className="px-3 py-1 text-sm text-green-600 hover:bg-green-900/20 border border-green-500/50 rounded transition-violet disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReject(request)}
+                        disabled={actingId === request.id}
+                        className="px-3 py-1 text-sm text-yellow-600 hover:bg-yellow-900/20 border border-yellow-500/50 rounded transition-violet disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
-}
-
-const thStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-  background: '#f5f5f5',
-}
-
-const tdStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
 }
 
 export default EnrollmentRequests

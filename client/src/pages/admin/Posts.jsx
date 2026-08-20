@@ -107,130 +107,121 @@ function Posts() {
     return Number.isNaN(date.getTime())
       ? '—'
       : date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Posts</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Posts</h1>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="mb-4 text-red-500">{error}</p>}
 
       {/* New post form — category_id is attached automatically per role. */}
-      <form
-        onSubmit={handleSubmit}
-        style={{ margin: '12px 0', padding: '12px', border: '1px solid #ccc', maxWidth: '560px' }}
-      >
-        <div>
-          <label>
-            Title
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              style={{ display: 'block', width: '100%' }}
-            />
-          </label>
+      <form onSubmit={handleSubmit} className="mb-6 p-4 bg-glass border border-glass-border rounded-xl shadow-glass max-w-md">
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-slate-300 mb-1">Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
         </div>
-        <div>
-          <label>
-            Content
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows="5"
-              required
-              style={{ display: 'block', width: '100%' }}
-            />
-          </label>
+        <div className="mb-3">
+          <label className="block text-sm font-medium text-slate-300 mb-1">Content</label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows="5"
+            required
+            className="w-full px-3 py-2 bg-glass border border-glass-border rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
         </div>
 
         {isSuperAdmin && (
-          <div style={{ margin: '8px 0' }}>
-            <span style={{ display: 'block', marginBottom: '4px' }}>Scope</span>
-            <label style={{ marginRight: '16px' }}>
-              <input
-                type="radio"
-                name="scope"
-                checked={postToMyCategory}
-                onChange={() => setPostToMyCategory(true)}
-              />{' '}
-              Post to my category
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="scope"
-                checked={!postToMyCategory}
-                onChange={() => setPostToMyCategory(false)}
-              />{' '}
-              Post globally to all users
-            </label>
+          <div className="mb-3">
+            <span className="block text-sm font-medium text-slate-300 mb-2">Scope</span>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="scope"
+                  checked={postToMyCategory}
+                  onChange={() => setPostToMyCategory(true)}
+                  className="text-violet-500"
+                />
+                <span className="text-slate-300">Post to my category</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="scope"
+                  checked={!postToMyCategory}
+                  onChange={() => setPostToMyCategory(false)}
+                  className="text-violet-500"
+                />
+                <span className="text-slate-300">Post globally to all users</span>
+              </label>
+            </div>
           </div>
         )}
 
-        <button type="submit" disabled={submitting}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 text-sm font-medium text-white bg-violet-500 hover:bg-violet-600 rounded-lg transition-violet disabled:opacity-50"
+        >
           {submitting ? 'Saving...' : 'Create Post'}
         </button>
       </form>
 
       {/* Existing posts, newest first (server orders by created_at DESC). */}
       {posts.length === 0 ? (
-        <p>No posts yet.</p>
+        <p className="text-slate-400">No posts yet.</p>
       ) : (
-        posts.map((post) => (
-          <div key={post.id} style={postCardStyle}>
-            <h3 style={{ marginTop: '0' }}>{post.title}</h3>
-            <p style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
-            <div style={postMetaStyle}>
-              <span>By {post.author?.name || '—'}</span>
-              <span>{formatDate(post.created_at)}</span>
-              {post.category_id === null && (
-                <span style={globalBadgeStyle}>Global</span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(post.id)}
-              disabled={deletingId === post.id}
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <div
+              key={post.id}
+              className="bg-glass border border-glass-border rounded-xl p-4 shadow-glass max-w-md"
             >
-              {deletingId === post.id ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        ))
+              <h3 className="text-xl font-semibold mb-2 text-slate-100">{post.title}</h3>
+              <p className="text-slate-300 mb-3 whitespace-pre-wrap">{post.content}</p>
+              <div className="flex items-center gap-3 text-sm text-slate-400 mb-3">
+                <span>By {post.author?.name || '—'}</span>
+                <span>{formatDate(post.created_at)}</span>
+                {post.category_id === null && (
+                  <span className="px-2 py-0.5 text-xs font-medium text-green-600 bg-green-900/20 rounded-full">
+                    Global
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(post.id)}
+                disabled={deletingId === post.id}
+                className="px-3 py-1 text-sm text-red-500 hover:bg-red-900/20 border border-red-500/50 rounded transition-violet disabled:opacity-50"
+              >
+                {deletingId === post.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
-}
-
-const postCardStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '16px',
-  marginBottom: '12px',
-  maxWidth: '640px',
-}
-
-const postMetaStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  fontSize: '13px',
-  color: '#666',
-  marginBottom: '8px',
-}
-
-const globalBadgeStyle = {
-  color: '#2e7d32',
-  fontWeight: 'bold',
 }
 
 export default Posts

@@ -58,22 +58,32 @@ function SelectCategory() {
   }
 
   if (loading) {
-    return <div>Loading categories...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading categories...</div>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Select Your Category</h1>
-      {fetchError && <p style={{ color: 'red' }}>{fetchError}</p>}
-      {selectError && <p style={{ color: 'red' }}>{selectError}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">Select Your Category</h1>
+      
+      {fetchError && <p className="mb-4 text-red-500">{fetchError}</p>}
+      {selectError && <p className="mb-4 text-red-500">{selectError}</p>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categories.map((category) => (
           <button
             key={category.id}
             type="button"
             onClick={() => handleSelect(category)}
             disabled={selectingId === category.id}
-            style={{ padding: '24px', fontSize: '16px', cursor: 'pointer' }}
+            className={`p-6 text-left text-lg font-medium rounded-xl transition-violet ${
+              selectingId === category.id
+                ? 'bg-slate-800 cursor-not-allowed'
+                : 'bg-glass border border-glass-border hover:bg-slate-800 cursor-pointer'
+            }`}
           >
             {selectingId === category.id ? 'Selecting...' : category.name}
           </button>

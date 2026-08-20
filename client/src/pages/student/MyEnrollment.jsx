@@ -65,15 +65,24 @@ function MyEnrollment() {
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-violet-500">Loading...</div>
+      </div>
+    )
   }
 
   if (!enrollment) {
     return (
-      <div>
-        <h1>My Enrollment</h1>
-        <p>You don't have an active enrollment yet.</p>
-        <Link to="/student/browse">Browse Courses</Link>
+      <div className="p-6">
+        <h1 className="text-3xl font-bold mb-4 text-violet-500">My Enrollment</h1>
+        <p className="text-slate-300 mb-4">You don't have an active enrollment yet.</p>
+        <Link
+          to="/student/browse"
+          className="text-violet-500 hover:text-violet-400 transition-violet font-medium"
+        >
+          Browse Courses
+        </Link>
       </div>
     )
   }
@@ -82,51 +91,45 @@ function MyEnrollment() {
   const status = enrollment.status
 
   return (
-    <div>
-      <h1>My Enrollment</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-violet-500">My Enrollment</h1>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="mb-4 text-red-500">{error}</p>}
 
       {status === 'pending' && (
-        <p>
-          Waiting for admin approval for course: <strong>{course.title}</strong>
+        <p className="mb-4 text-slate-300">
+          Waiting for admin approval for course: <strong className="text-slate-100">{course.title}</strong>
         </p>
       )}
 
       {status === 'completed' && (
         <>
-          <p>🎉 Congratulations! You completed the course.</p>
-          <Link to="/student/browse">Go to Browse Courses</Link>
+          <p className="mb-4 text-green-400 text-lg">🎉 Congratulations! You completed the course.</p>
+          <Link
+            to="/student/browse"
+            className="text-violet-500 hover:text-violet-400 transition-violet font-medium"
+          >
+            Go to Browse Courses
+          </Link>
         </>
       )}
 
       {status === 'in_progress' && (
         <>
-          <p>
-            <strong>{course.title}</strong>
+          <p className="mb-2 text-slate-300">
+            <strong className="text-slate-100">{course.title}</strong>
           </p>
-          <p>
+          <p className="mb-4 text-slate-400">
             {progress?.completedCount ?? 0} of {progress?.totalLessons ?? 0}{' '}
             lessons completed
           </p>
-          <div
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              width: '100%',
-              maxWidth: '480px',
-              marginBottom: '16px',
-            }}
-          >
-            <div
-              style={{
-                height: '20px',
-                width: `${progress?.percentage ?? 0}%`,
-                background: '#4caf50',
-                transition: 'width 0.3s',
-              }}
-            />
+          <div className="mb-6">
+            <div className="bg-slate-800 rounded-full h-8 overflow-hidden">
+              <div
+                className="bg-violet-500 h-full transition-all duration-300"
+                style={{ width: `${progress?.percentage ?? 0}%` }}
+              />
+            </div>
           </div>
           {lessons?.map((lesson) => {
             const isCompleted = (progress?.completedLessonIds || []).includes(
@@ -135,26 +138,30 @@ function MyEnrollment() {
             return (
               <div
                 key={lesson.id}
-                style={{
-                  border: '1px solid #eee',
-                  borderRadius: '6px',
-                  padding: '10px',
-                  marginBottom: '8px',
-                  maxWidth: '480px',
-                }}
+                className="bg-glass border border-glass-border rounded-xl p-3 mb-3 shadow-glass max-w-md"
               >
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={isCompleted}
-                    onChange={() => handleComplete(lesson.id)}
-                    disabled={isCompleted || completingId === lesson.id}
-                  />
-                  {lesson.title} ({lesson.type})
-                </label>{' '}
-                <a href={lesson.url} target="_blank" rel="noopener noreferrer">
-                  Open
-                </a>
+                <label className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isCompleted}
+                      onChange={() => handleComplete(lesson.id)}
+                      disabled={isCompleted || completingId === lesson.id}
+                      className="w-4 h-4 text-violet-500 border border-slate-600 rounded focus:ring-violet-500"
+                    />
+                    <span className={`text-sm ${isCompleted ? 'line-through text-slate-500' : 'text-slate-200'}`}>
+                      {lesson.title} ({lesson.type})
+                    </span>
+                  </div>
+                  <a
+                    href={lesson.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-violet-500 hover:text-violet-400 transition-violet text-sm"
+                  >
+                    Open
+                  </a>
+                </label>
               </div>
             )
           })}

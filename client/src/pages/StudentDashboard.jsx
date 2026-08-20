@@ -11,7 +11,7 @@ function StudentDashboard() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-slate-900 text-slate-100">
       <PostsFeed />
     </div>
   )
