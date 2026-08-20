@@ -19,6 +19,9 @@ function AllStudents() {
   const [studentsByCategory, setStudentsByCategory] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [actionError, setActionError] = useState(null)
+  const [actionSuccess, setActionSuccess] = useState(null)
+  const [actingId, setActingId] = useState(null)
 
   const loadCategories = async () => {
     const res = await api.get('/categories')
@@ -39,6 +42,34 @@ function AllStudents() {
       [user.category_id]: res.data.students || [],
     })
   }
+
+  // Runs a user-management action (suspend/activate/delete) and then refreshes
+  // the student list so the UI reflects the change immediately.
+  const runAction = async (student, fn) => {
+    setActingId(student.id)
+    setActionError(null)
+    setActionSuccess(null)
+    try {
+      const res = await fn()
+      setActionSuccess(res?.data?.message || 'Action completed.')
+      await loadStudents()
+    } catch (err) {
+      setActionError(
+        err.response?.data?.error || 'Action failed. Please try again.'
+      )
+    } finally {
+      setActingId(null)
+    }
+  }
+
+  const handleSuspend = (student) =>
+    runAction(student, () => api.patch(`/admin/users/${student.id}/suspend`))
+
+  const handleActivate = (student) =>
+    runAction(student, () => api.patch(`/admin/users/${student.id}/activate`))
+
+  const handleDeleteUser = (student) =>
+    runAction(student, () => api.delete(`/admin/users/${student.id}`))
 
   useEffect(() => {
     let cancelled = false
@@ -80,6 +111,8 @@ function AllStudents() {
           <th style={thStyle}>Email</th>
           <th style={thStyle}>Current Course</th>
           <th style={thStyle}>Enrollment Status</th>
+          <th style={thStyle}>Account Status</th>
+          {isSuperAdmin && <th style={thStyle}>Actions</th>}
         </tr>
       </thead>
       <tbody>
@@ -93,6 +126,55 @@ function AllStudents() {
             <td style={tdStyle}>
               {student.currentEnrollment?.status || 'none'}
             </td>
+            <td style={tdStyle}>
+              <span
+                style={
+                  student.status === 'suspended'
+                    ? suspendedBadgeStyle
+                    : activeBadgeStyle
+                }
+              >
+                {student.status === 'suspended' ? 'Suspended' : 'Active'}
+              </span>
+            </td>
+            {isSuperAdmin && (
+              <td style={tdStyle}>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {student.status === 'suspended' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleActivate(student)}
+                      disabled={actingId === student.id}
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSuspend(student)}
+                      disabled={actingId === student.id}
+                    >
+                      Suspend
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={actingId === student.id}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Permanently delete ${student.name} (${student.email})? This removes their account and any data tied to it. This cannot be undone.`
+                        )
+                      ) {
+                        handleDeleteUser(student)
+                      }
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
@@ -110,6 +192,13 @@ function AllStudents() {
   return (
     <div>
       <h1>{isSuperAdmin ? 'All Students' : 'My Students'}</h1>
+
+      {actionSuccess && (
+        <p role="status" style={successStyle}>
+          {actionSuccess}
+        </p>
+      )}
+      {actionError && <p style={{ color: 'red' }}>{actionError}</p>}
 
       {visibleCategories.map((category) => {
         const students = studentsByCategory[category.id] || []
@@ -158,6 +247,25 @@ const tdStyle = {
 const sectionTitleStyle = {
   borderBottom: '1px solid #ccc',
   paddingBottom: '4px',
+}
+
+const successStyle = {
+  color: 'green',
+  background: '#e8f5e9',
+  border: '1px solid #66bb6a',
+  borderRadius: '6px',
+  padding: '10px 12px',
+  maxWidth: '720px',
+}
+
+const activeBadgeStyle = {
+  color: '#2e7d32',
+  fontWeight: 'bold',
+}
+
+const suspendedBadgeStyle = {
+  color: '#b26a00',
+  fontWeight: 'bold',
 }
 
 export default AllStudents

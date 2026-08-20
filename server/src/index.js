@@ -56,6 +56,20 @@ const startServer = async () => {
     console.error('Unable to sync the database:', error.message);
   }
 
+  // Idempotent migration for the new `status` column. `sequelize.sync()` creates
+  // missing tables but does NOT add columns to already-existing tables, so an
+  // existing database would otherwise never receive the `status` field. This is
+  // a no-op when the column already exists (created either by sync() on a fresh
+  // database or by this statement on a pre-existing one).
+  try {
+    await sequelize.query(
+      'ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "status" VARCHAR(20) NOT NULL DEFAULT \'active\''
+    );
+    console.log('Users.status column ensured.');
+  } catch (error) {
+    console.error('Unable to ensure Users.status column:', error.message);
+  }
+
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });

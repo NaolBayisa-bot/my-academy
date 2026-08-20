@@ -64,10 +64,11 @@ function Overview() {
     return <p style={{ color: 'red' }}>{error}</p>
   }
 
-  const { totalStudents, totalCourses, completionsPerCategory } =
+  const { totalStudents, totalCourses, suspendedStudents = 0, completionsPerCategory } =
     stats || {
       totalStudents: 0,
       totalCourses: 0,
+      suspendedStudents: 0,
       completionsPerCategory: [],
     }
 
@@ -78,6 +79,11 @@ function Overview() {
       <div style={gridStyle}>
         <StatCard title="Total Students" value={totalStudents} />
         <StatCard title="Total Courses" value={totalCourses} />
+        <StatCard
+          title="Suspended Students"
+          value={suspendedStudents}
+          subtitle="suspended accounts"
+        />
         {completionsPerCategory.map((category) => (
           <StatCard
             key={category.category_id}

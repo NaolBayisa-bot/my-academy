@@ -14,7 +14,7 @@ exports.getCategories = async (req, res) => {
       // foreignKey: 'admin_id' })). Only public fields are selected — no
       // password_hash ever leaks. `admin` is null when a category is unassigned.
       include: [
-        { model: User, as: 'admin', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'admin', attributes: ['id', 'name', 'email', 'status'] },
       ],
       order: [['name', 'ASC']],
     });

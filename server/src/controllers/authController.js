@@ -60,6 +60,13 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
+    // Block suspended accounts at login so they cannot sign in at all.
+    if (user.status === 'suspended') {
+      return res.status(403).json({
+        error: 'Your account has been suspended. Contact an administrator.',
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {

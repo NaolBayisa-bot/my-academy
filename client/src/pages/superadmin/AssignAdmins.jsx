@@ -31,6 +31,8 @@ function AssignAdmins() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [assigningId, setAssigningId] = useState(null)
+  // Busy state for the per-admin user-management actions (suspend/activate/delete).
+  const [userActingId, setUserActingId] = useState(null)
 
   // Per-category transient UI state, keyed by category id so the searchable
   // dropdown + selection are tracked independently for each card.
@@ -169,6 +171,48 @@ function AssignAdmins() {
   const adminLabel = (admin) =>
     admin ? `${admin.name} (${admin.email})` : '— None assigned'
 
+  // Suspend or restore the current admin depending on their status, then refetch
+  // so the categories (with the updated admin status) and candidate pools refresh.
+  const handleUserAction = async (category, admin) => {
+    const action = admin.status === 'suspended' ? 'activate' : 'suspend'
+    setError(null)
+    setSuccess(null)
+    setUserActingId(admin.id)
+    try {
+      const res = await api.patch(`/admin/users/${admin.id}/${action}`)
+      setSuccess(
+        res.data.message ||
+          (action === 'suspend' ? 'User suspended.' : 'User activated.')
+      )
+      await Promise.all([loadCategories(), loadCandidates()])
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          'Failed to update user status. Please try again.'
+      )
+    } finally {
+      setUserActingId(null)
+    }
+  }
+
+  // Permanently delete the category admin, then refresh categories + candidates.
+  const handleDeleteAdminUser = async (category, admin) => {
+    setError(null)
+    setSuccess(null)
+    setUserActingId(admin.id)
+    try {
+      const res = await api.delete(`/admin/users/${admin.id}`)
+      setSuccess(res.data.message || 'User permanently deleted.')
+      await Promise.all([loadCategories(), loadCandidates()])
+    } catch (err) {
+      setError(
+        err.response?.data?.error || 'Failed to delete user. Please try again.'
+      )
+    } finally {
+      setUserActingId(null)
+    }
+  }
+
   if (loading) {
     return <div>Loading...</div>
   }
@@ -210,22 +254,64 @@ function AssignAdmins() {
               </p>
 
               {admin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Remove ${admin.name} as admin of "${category.name}"?`
-                      )
-                    ) {
-                      handleDeassign(category)
-                    }
-                  }}
-                  disabled={busy}
-                  style={{ ...buttonStyle, fontSize: '12px', padding: '4px 10px' }}
-                >
-                  Remove admin
-                </button>
+                <>
+                  <p style={{ margin: '4px 0' }}>
+                    <span style={{ fontWeight: 'bold' }}>Status:</span>{' '}
+                    <strong
+                      style={
+                        admin.status === 'suspended'
+                          ? suspendedBadgeStyle
+                          : activeBadgeStyle
+                      }
+                    >
+                      {admin.status === 'suspended' ? 'Suspended' : 'Active'}
+                    </strong>
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleUserAction(category, admin)}
+                      disabled={busy || userActingId === admin.id}
+                      style={smallActionStyle}
+                    >
+                      {admin.status === 'suspended'
+                        ? 'Restore user'
+                        : 'Suspend user'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Permanently delete ${admin.name} (${admin.email})? This removes their account, their posts, and the courses they created. This cannot be undone.`
+                          )
+                        ) {
+                          handleDeleteAdminUser(category, admin)
+                        }
+                      }}
+                      disabled={busy || userActingId === admin.id}
+                      style={{ ...smallActionStyle, color: '#b91c1c' }}
+                    >
+                      Delete user
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Remove ${admin.name} as admin of "${category.name}"?`
+                          )
+                        ) {
+                          handleDeassign(category)
+                        }
+                      }}
+                      disabled={busy || userActingId === admin.id}
+                      style={smallActionStyle}
+                    >
+                      Remove admin
+                    </button>
+                  </div>
+                </>
               )}
               <div style={{ marginTop: '12px' }}>
                 <label htmlFor={`search-${category.id}`} style={labelStyle}>
@@ -327,6 +413,21 @@ const buttonStyle = {
   marginTop: '8px',
   padding: '6px 12px',
   cursor: 'pointer',
+}
+
+const smallActionStyle = {
+  marginTop: '8px',
+  padding: '4px 10px',
+  fontSize: '12px',
+  cursor: 'pointer',
+}
+
+const activeBadgeStyle = {
+  color: '#2e7d32',
+}
+
+const suspendedBadgeStyle = {
+  color: '#b26a00',
 }
 
 const successStyle = {

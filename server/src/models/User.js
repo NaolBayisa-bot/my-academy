@@ -27,6 +27,14 @@ const User = sequelize.define(
       defaultValue: 'student',
       allowNull: false,
     },
+    // Soft-deactivation flag. A suspended user is blocked from the platform but
+    // their data is preserved, so the account can be restored to its original
+    // state. Permanently deleting a user instead removes them entirely.
+    status: {
+      type: DataTypes.ENUM('active', 'suspended'),
+      defaultValue: 'active',
+      allowNull: false,
+    },
     category_id: {
       type: DataTypes.UUID,
       allowNull: true,
