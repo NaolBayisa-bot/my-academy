@@ -1,30 +1,7 @@
-import React from 'react'
-
-const Card = React.forwardRef(function Card(
-  { 
-    children, 
-    padding = 'p-6',
-    hoverLift = false,
-    className = '',
-    ...props 
-  },
-  ref
-) {
-  const baseClasses =
-    'glass-panel rounded-xl ' +
-    `${padding} ` +
-    `${hoverLift ? 'hover:-translate-y-2 transition-all duration-300' : ''} ` +
-    className
-
+export default function Card({ children, className = '', padding = 'p-6' }) {
   return (
-    <div
-      ref={ref}
-      className={baseClasses}
-      {...props}
-    >
+    <div className={`card-tech rounded-tech ${padding} ${className}`}>
       {children}
     </div>
   )
-})
-
-export default Card
+}

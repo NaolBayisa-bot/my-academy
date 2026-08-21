@@ -1,82 +1,57 @@
-import React from 'react'
-import { useTheme } from '../../context/ThemeToggleContext'
+const variants = {
+  primary:
+    'bg-primary-600 text-white hover:bg-primary-500 focus:ring-primary-500 dark:bg-primary-600 dark:hover:bg-primary-500 shadow-sm shadow-primary-500/20',
+  secondary:
+    'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-primary-500 dark:bg-tech-card dark:text-slate-300 dark:border-tech-border dark:hover:bg-tech-border dark:hover:border-primary-500/30',
+  danger:
+    'bg-red-600 text-white hover:bg-red-500 focus:ring-red-500 dark:hover:bg-red-700',
+  ghost:
+    'bg-transparent text-slate-500 hover:bg-slate-100 focus:ring-slate-400 dark:text-slate-400 dark:hover:bg-tech-border dark:hover:text-primary-400',
+}
 
-const Button = React.forwardRef(function Button(
-  { 
-    variant = 'primary', 
-    loading = false, 
-    leftIcon, 
-    rightIcon, 
-    fullWidth,
-    children,
-    disabled,
-    type = 'button',
-    className = '',
-    onClick,
-    ...props 
-  },
-  ref
-) {
-  const { isDark } = useTheme()
-  
-  const baseClasses =
-    'relative inline-flex items-center justify-center gap-2 rounded-xl font-medium ' +
-    'transition-all duration-200 focus:outline-none focus:ring-2 ' +
-    "focus:ring-" + (isDark ? 'primary' : 'primary-container') + ' ' +
-    'disabled:cursor-not-allowed disabled:opacity-50 ' +
-    (fullWidth ? 'w-full ' : '') +
-    className
+const sizes = {
+  sm: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
+}
 
-  const variants = {
-    primary:
-      'bg-primary text-on-primary shadow-glow hover:shadow-glow-hover ' +
-      'btn-sheen',
-    secondary:
-      'bg-surface-container-high text-on-surface hover:bg-surface-container-highest ' +
-      'border border-outline-variant',
-    outline:
-      'bg-surface-container-high text-on-surface border border-outline ' +
-      'hover:bg-surface-container-highest',
-    ghost:
-      'bg-transparent text-on-surface hover:bg-surface-container-low',
-    danger:
-      'bg-error-container text-on-error-container border border-error ' +
-      'hover:bg-error hover:text-on-error',
-  }
-
-  const handleChange = (e) => {
-    if (!disabled && !loading) {
-      onClick?.(e)
-    }
-  }
-
+export default function Button({
+  variant = 'primary',
+  size = 'md',
+  isLoading = false,
+  disabled,
+  children,
+  className = '',
+  ...props
+}) {
   return (
     <button
-      ref={ref}
-      type={type}
-      disabled={disabled || loading}
-      className={baseClasses + ' ' + variants[variant]}
-      onClick={handleChange}
+      className={`btn btn-sheen inline-flex items-center justify-center gap-2 font-medium transition-all duration-200
+        focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-tech-surface disabled:opacity-50 disabled:cursor-not-allowed
+        rounded-tech
+        ${variants[variant]} ${sizes[size]} ${className}`}
+      disabled={disabled || isLoading}
       {...props}
     >
-      {loading && (
-        <span className="material-symbols-outlined animate-spin">
-          progress_activity
-        </span>
+      {isLoading && (
+        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+            fill="none"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
+        </svg>
       )}
-      {!loading && leftIcon && (
-        <span className="material-symbols-outlined">{leftIcon}</span>
-      )}
-      <span className={loading ? 'opacity-80' : ''}>
-        {loading ? 'Loading…' : children}
-      </span>
-      {!loading && rightIcon && (
-        <span className="material-symbols-outlined">
-          {rightIcon}
-        </span>
-      )}
+      {children}
     </button>
   )
-})
-
-export default Button
+}

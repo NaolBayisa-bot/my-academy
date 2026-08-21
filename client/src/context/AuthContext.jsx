@@ -1,75 +1,92 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react'
 import api from '../api/axios'
+import { Role } from '../constants'
 
-const TOKEN_KEY = 'token'
-
-const AuthContext = createContext(null)
+const AuthContext = createContext(undefined)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
-  const [loading, setLoading] = useState(Boolean(localStorage.getItem(TOKEN_KEY)))
+  const [state, setState] = useState({
+    user: null,
+    token: localStorage.getItem('token'),
+    isLoading: true,
+    isAuthenticated: false,
+  })
 
-  // On app load, restore the user session when a token already exists.
+  // On mount, restore the session from localStorage (mirrors @ishub/shared user shape).
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY)
-    if (!storedToken) {
-      setLoading(false)
-      return
-    }
+    const storedUser = localStorage.getItem('user')
+    const storedToken = localStorage.getItem('token')
 
-    const restoreSession = async () => {
+    if (storedToken && storedUser) {
       try {
-        const res = await api.get('/auth/me')
-        setUser(res.data.user)
+        const user = JSON.parse(storedUser)
+        setState({
+          user,
+          token: storedToken,
+          isLoading: false,
+          isAuthenticated: true,
+        })
       } catch {
-        // Token is invalid or expired — clear the stale session.
-        localStorage.removeItem(TOKEN_KEY)
-        setToken(null)
-        setUser(null)
-      } finally {
-        setLoading(false)
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        setState({
+          user: null,
+          token: null,
+          isLoading: false,
+          isAuthenticated: false,
+        })
       }
+    } else {
+      setState((s) => ({ ...s, isLoading: false }))
     }
-
-    restoreSession()
   }, [])
 
-  const persistSession = (nextToken, nextUser) => {
-    localStorage.setItem(TOKEN_KEY, nextToken)
-    setToken(nextToken)
-    setUser(nextUser)
-  }
+  const login = useCallback(async (email, password) => {
+    const { data } = await api.post('/auth/login', { email, password })
+    // Accept either `accessToken` (ishub) or `token` (older backend) for robustness.
+    const accessToken = data.accessToken || data.token
+    localStorage.setItem('token', accessToken)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    setState({
+      user: data.user,
+      token: accessToken,
+      isLoading: false,
+      isAuthenticated: true,
+    })
+  }, [])
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password })
-    persistSession(res.data.token, res.data.user)
-    return res.data
-  }
+  const register = useCallback(async (input) => {
+    const { data } = await api.post('/auth/register', input)
+    const accessToken = data.accessToken || data.token
+    localStorage.setItem('token', accessToken)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    setState({
+      user: data.user,
+      token: accessToken,
+      isLoading: false,
+      isAuthenticated: true,
+    })
+  }, [])
 
-  const register = async (name, email, password) => {
-    const res = await api.post('/auth/register', { name, email, password })
-    // Register returns a token + user, so the user is logged in automatically.
-    persistSession(res.data.token, res.data.user)
-    return res.data
-  }
-
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY)
-    setToken(null)
-    setUser(null)
-  }
-
-  // Merge partial fields into the current authenticated user (e.g. a newly
-  // selected category_id). No-op when there is no active user.
-  const updateUser = (patch) => {
-    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
-  }
+  const logout = useCallback(() => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setState({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+    })
+  }, [])
 
   return (
-    <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, updateUser }}
-    >
+    <AuthContext.Provider value={{ ...state, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   )
@@ -77,7 +94,7 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
