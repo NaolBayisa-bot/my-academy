@@ -13,8 +13,10 @@ export default function AdminDashboard() {
 
   const fetchStudents = useCallback(async () => {
     try {
-      const { data } = await api.get('/users')
-      setStudents(data.filter((u) => u.role === 'STUDENT'))
+      const { data } = await api.get('/admin/users')
+      // Transform grouped response to flat array
+      const allStudents = Object.values(data.studentsByCategory || {}).flat()
+      setStudents(allStudents.filter((u) => u.role === 'STUDENT'))
     } catch (err) {
       console.error('Failed to fetch students:', err)
     } finally {
@@ -29,7 +31,11 @@ export default function AdminDashboard() {
   const handleStatusUpdate = async (studentId, status) => {
     setActionLoading(studentId)
     try {
-      await api.patch(`/users/${studentId}/status`, { status })
+      if (status === 'SUSPENDED') {
+        await api.patch(`/admin/users/${studentId}/suspend`)
+      } else if (status === 'ACTIVE') {
+        await api.patch(`/admin/users/${studentId}/activate`)
+      }
       await fetchStudents()
     } catch (err) {
       console.error('Failed to update student status:', err)

@@ -22,7 +22,8 @@ export default function Navbar() {
     <nav className="bg-white/90 dark:bg-tech-surface/90 backdrop-blur-md border-b border-slate-200 dark:border-tech-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flexacademy ~ v1.0.0
+Learn. items-center gap-2">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">IS</span>
             </div>
@@ -78,10 +79,10 @@ export default function Navbar() {
                 {user?.role === Role.CATEGORY_ADMIN && (
                   <>
                     <Link
-                      to="/admin/trainings"
+                      to="/admin/courses"
                       className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
                     >
-                      Trainings
+                      Courses
                     </Link>
                     <Link
                       to="/admin/resources"
@@ -100,10 +101,10 @@ export default function Navbar() {
                       Dashboard
                     </Link>
                     <Link
-                      to="/trainings"
+                      to="/courses"
                       className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
                     >
-                      My Trainings
+                      My Courses
                     </Link>
                     <Link
                       to="/resources"

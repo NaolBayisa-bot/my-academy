@@ -87,11 +87,15 @@ function MyStudents() {
     let cancelled = false
     const load = async () => {
       try {
-        const res = await api.get('/students/my-enrollments')
+        const res = await api.get('/students/my-enrollment')
         if (!cancelled) {
-          const data = res.data.enrollments || []
-          const uniqueCourses = [...new Map(data.map((e) => [e.course_id, e.course])).values()]
-          setEnrollments(uniqueCourses)
+          const enrollment = res.data.enrollment
+          if (!enrollment) {
+            setEnrollments([])
+          } else {
+            // Convert single enrollment response to array format for consistency
+            setEnrollments(enrollment.course ? [enrollment.course] : [])
+          }
         }
       } catch (err) {
         if (!cancelled) {

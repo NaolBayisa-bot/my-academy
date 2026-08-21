@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../services/api'
 import Button from '../../components/ui/Button'
-import Spinner from '../../components/ui/Spinner'
 import Card from '../../components/ui/Card'
+import Spinner from '../../components/ui/Spinner'
+import Badge from '../../components/ui/Badge'
 
-export default function CategoryAdminDashboard() {
+export default function CourseListView() {
   const { user } = useAuth()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -19,10 +20,9 @@ export default function CategoryAdminDashboard() {
   const fetchCourses = async () => {
     try {
       setLoading(true)
-      const { data } = await api.get('/courses', {
-        params: { categoryId: user.category_id }
-      })
-      setCourses(data.courses || data)
+      const { data } = await api.get('/students/my-category-courses')
+      const courseList = data.courses || data
+      setCourses(courseList)
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load courses')
     } finally {
@@ -32,19 +32,9 @@ export default function CategoryAdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Category Admin Dashboard
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Manage your category courses
-          </p>
-        </div>
-        <Link to="/admin/courses/new">
-          <Button>+ New Course</Button>
-        </Link>
-      </div>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+        Available Courses
+      </h1>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
@@ -54,33 +44,33 @@ export default function CategoryAdminDashboard() {
         </div>
       ) : courses.length === 0 ? (
         <Card className="text-center py-16">
-          <p className="text-slate-500 dark:text-slate-400 mb-4">
-            No courses yet
+          <p className="text-slate-500 dark:text-slate-400">
+            No courses available yet
           </p>
-          <Link to="/admin/courses/new">
-            <Button>Create your first course</Button>
-          </Link>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           {courses.map((course) => (
             <Card
               key={course.id}
-              className="p-5 flex items-center justify-between"
+              className="p-5 flex flex-col gap-3"
             >
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">
                   {course.title}
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1">
-                  {course.description || 'No description'}
+                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
+                  {course.description || 'No description available'}
                 </p>
+                {course.category && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    Category: {course.category.name}
+                  </p>
+                )}
               </div>
-              <div className="flex gap-2">
-                <Link to={`/admin/courses/${course.id}`}>
-                  <Button variant="secondary" size="sm">
-                    View
-                  </Button>
+              <div className="flex items-center justify-between">
+                <Link to={`/courses/${course.id}`}>
+                  <Button size="sm">View Course</Button>
                 </Link>
               </div>
             </Card>

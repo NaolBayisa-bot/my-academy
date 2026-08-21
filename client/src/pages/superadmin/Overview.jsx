@@ -5,7 +5,7 @@ import api from '../../api/axios'
 //
 // Data flow:
 //  - GET /api/admin/overview -> aggregate counts for the dashboard:
-//    totalStudents, totalCourses, and completionsPerCategory (one entry per
+//    totalStudents, totalCourses, rejectedStudents, suspendedStudents, and completionsPerCategory (one entry per
 //    category with that category's completed-enrollment count).
 //
 // This page is the super admin default landing page (/super-admin/dashboard).
@@ -66,13 +66,19 @@ function Overview() {
     )
   }
 
-  const { totalStudents, totalCourses, suspendedStudents = 0, completionsPerCategory } =
-    stats || {
-      totalStudents: 0,
-      totalCourses: 0,
-      suspendedStudents: 0,
-      completionsPerCategory: [],
-    }
+  const {
+    totalStudents,
+    totalCourses,
+    suspendedStudents = 0,
+    rejectedStudents = 0,
+    completionsPerCategory,
+  } = stats || {
+    totalStudents: 0,
+    totalCourses: 0,
+    suspendedStudents: 0,
+    rejectedStudents: 0,
+    completionsPerCategory: [],
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -85,6 +91,11 @@ function Overview() {
           title="Suspended Students"
           value={suspendedStudents}
           subtitle="suspended accounts"
+        />
+        <StatCard
+          title="Rejected Students"
+          value={rejectedStudents}
+          subtitle="rejected enrollments"
         />
         {completionsPerCategory.map((category) => (
           <StatCard

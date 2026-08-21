@@ -8,25 +8,27 @@ import LoginPage from './pages/LoginPage'
 import UnauthorizedPage from './pages/dashboard/UnauthorizedPage'
 import NotFoundPage from './pages/NotFoundPage'
 import StudentDashboard from './pages/dashboard/StudentDashboard'
-import AdminDashboard from './pages/dashboard/AdminDashboard'
+import Overview from './pages/superadmin/Overview'
 import CategoryAdminDashboard from './pages/dashboard/CategoryAdminDashboard'
-import TrainingFormPage from './pages/dashboard/TrainingFormPage'
-import StudentTrainingListPage from './pages/dashboard/StudentTrainingListPage'
-import StudentTrainingViewPage from './pages/dashboard/StudentTrainingViewPage'
+import CourseFormPage from './pages/dashboard/CourseFormPage'
+import CourseListView from './pages/dashboard/CourseListView'
+import CourseViewPage from './pages/dashboard/CourseViewPage'
 import AdminResourcesPage from './pages/dashboard/AdminResourcesPage'
 import StudentResourcesPage from './pages/dashboard/StudentResourcesPage'
+import StudentEnrollmentsPage from './pages/student/MyEnrollment'
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
-        {/* Public */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      {/* Public - standalone pages without Layout */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        {/* Student */}
+      {/* Protected routes with Layout */}
+      <Route element={<Layout />}>
+        {/* Student Dashboard */}
         <Route
           path="/dashboard"
           element={
@@ -36,37 +38,37 @@ export default function App() {
           }
         />
 
-        {/* Admin */}
+        {/* Super Admin Dashboard */}
         <Route
           path="/admin"
           element={
             <ProtectedRoute allowedRoles={[Role.MAIN_ADMIN]}>
-              <AdminDashboard />
+              <Overview />
             </ProtectedRoute>
           }
         />
 
-        {/* Student Trainings */}
+        {/* Student Courses */}
         <Route
-          path="/trainings"
+          path="/courses"
           element={
             <ProtectedRoute allowedRoles={[Role.STUDENT]}>
-              <StudentTrainingListPage />
+              <CourseListView />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/trainings/:id"
+          path="/courses/:id"
           element={
             <ProtectedRoute allowedRoles={[Role.STUDENT]}>
-              <StudentTrainingViewPage />
+              <CourseViewPage />
             </ProtectedRoute>
           }
         />
 
-        {/* Category Admin */}
+        {/* Category Admin Courses */}
         <Route
-          path="/admin/trainings"
+          path="/admin/courses"
           element={
             <ProtectedRoute allowedRoles={[Role.CATEGORY_ADMIN]}>
               <CategoryAdminDashboard />
@@ -74,21 +76,33 @@ export default function App() {
           }
         />
         <Route
-          path="/admin/trainings/new"
+          path="/admin/courses/new"
           element={
             <ProtectedRoute allowedRoles={[Role.CATEGORY_ADMIN]}>
-              <TrainingFormPage />
+              <CourseFormPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/admin/trainings/:id"
+          path="/admin/courses/:id"
           element={
             <ProtectedRoute allowedRoles={[Role.CATEGORY_ADMIN]}>
-              <TrainingFormPage />
+              <CourseFormPage />
             </ProtectedRoute>
           }
         />
+
+        {/* Enrollments */}
+        <Route
+          path="/enrollments"
+          element={
+            <ProtectedRoute allowedRoles={[Role.STUDENT]}>
+              <StudentEnrollmentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Resources (unimplemented - keeping routes for future) */}
         <Route
           path="/admin/resources"
           element={
@@ -97,8 +111,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Student Resources */}
         <Route
           path="/resources"
           element={

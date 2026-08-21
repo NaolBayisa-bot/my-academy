@@ -233,6 +233,14 @@ exports.getOverview = async (req, res) => {
       where: { role: 'student', status: 'suspended' },
     });
 
+    // Number of students with at least one rejected enrollment.
+    // A student may reappear after approval, so we count by enrollment status.
+    const rejectedStudents = await Enrollment.count({
+      distinct: true,
+      where: { status: 'rejected' },
+      col: 'student_id',
+    });
+
     // Completions per category: iterate over all categories and count
     // completed enrollments whose course falls in that category.
     const categories = await Category.findAll({
@@ -262,6 +270,7 @@ exports.getOverview = async (req, res) => {
       totalStudents,
       totalCourses,
       suspendedStudents,
+      rejectedStudents,
       completionsPerCategory,
     });
   } catch (error) {
