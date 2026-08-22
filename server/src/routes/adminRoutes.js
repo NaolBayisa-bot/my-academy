@@ -2,9 +2,13 @@ const express = require('express');
 const { authenticate, authorize } = require('../middleware/auth');
 const {
   assignCategoryAdmin,
+  deassignCategoryAdmin,
   getStudentsByCategory,
   getAllStudents,
   getOverview,
+  suspendUser,
+  activateUser,
+  deleteUser,
 } = require('../controllers/adminController');
 const {
   getPendingEnrollments,
@@ -22,6 +26,16 @@ router.patch(
   authenticate,
   authorize('super_admin'),
   assignCategoryAdmin
+);
+
+// PATCH /api/admin/deassign-category-admin
+// Inverse of assign-category-admin: clears a category's admin (reverts the
+// user's role back to 'student'). Only a super_admin can perform this.
+router.patch(
+  '/deassign-category-admin',
+  authenticate,
+  authorize('super_admin'),
+  deassignCategoryAdmin
 );
 
 // GET /api/admin/category/:categoryId/students
@@ -47,6 +61,35 @@ router.get(
   authenticate,
   authorize('super_admin'),
   getOverview
+);
+
+// --- User management routes (super_admin only) ---
+
+// PATCH /api/admin/users/:id/suspend
+// Soft-deactivates a user; all data is preserved and it can be reversed.
+router.patch(
+  '/users/:id/suspend',
+  authenticate,
+  authorize('super_admin'),
+  suspendUser
+);
+
+// PATCH /api/admin/users/:id/activate
+// Restores a suspended user to 'active' with their original data intact.
+router.patch(
+  '/users/:id/activate',
+  authenticate,
+  authorize('super_admin'),
+  activateUser
+);
+
+// DELETE /api/admin/users/:id
+// Permanently removes a user and all of their dependent data. Irreversible.
+router.delete(
+  '/users/:id',
+  authenticate,
+  authorize('super_admin'),
+  deleteUser
 );
 
 // --- Enrollment admin routes ---

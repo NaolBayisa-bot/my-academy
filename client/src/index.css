@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 :root {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   line-height: 1.5;
@@ -41,3 +42,326 @@ img {
 #root {
   min-height: 100vh;
 }
+=======
+@import "tailwindcss";
+
+/* ─── isHub "tech" theme tokens (Tailwind v4 CSS-first config) ─── */
+@theme {
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e8f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #06b6d4;
+  --color-primary-600: #0891b2;
+  --color-primary-700: #0e7490;
+  --color-primary-800: #155e75;
+  --color-primary-900: #164e63;
+  --color-primary-950: #083344;
+
+  --color-tech-surface: #0a0a0f;
+  --color-tech-card: #12121a;
+  --color-tech-border: #1e1e2e;
+  --color-tech-glow: rgba(6, 182, 212, 0.15);
+
+  --radius-tech: 6px;
+}
+
+:root {
+  --color-background: #0f1320;
+  --color-surface-container-lowest: #0a0e1a;
+  --color-surface-container-low: #171b28;
+  --color-surface-container: #1b1f2c;
+  --color-surface-container-high: #262937;
+  --color-surface-container-highest: #313442;
+  --color-on-surface: #dfe1f4;
+  --color-on-surface-variant: #c9c4d8;
+  --color-primary: #cabeff;
+  --color-primary-container: #947dff;
+  --color-on-primary: #31009a;
+  --color-tertiary: #3ae196;
+  --color-tertiary-container: #00a66a;
+  --color-on-tertiary-container: #002f1a;
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+  --color-outline: #938ea1;
+  --color-outline-variant: #484555;
+  --color-secondary: #c8c5cd;
+  --color-secondary-container: #49484e;
+  --color-warning: #ffd68a;
+  --color-warning-container: #463200;
+  --color-on-warning-container: #fff8e1;
+  --glow-primary: rgba(124, 92, 255, 0.6);
+  --glow-tertiary: rgba(95, 254, 176, 0.5);
+  --glow-error: rgba(255, 180, 171, 0.5);
+  --glow-secondary: rgba(200, 197, 205, 0.4);
+  --glow-warning: rgba(255, 214, 138, 0.5);
+}
+
+html:not(.dark) {
+  --color-background: #f4f5fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eceef7;
+  --color-surface-container: #e4e6f2;
+  --color-surface-container-high: #d8daea;
+  --color-surface-container-highest: #c9cce0;
+  --color-on-surface: #1b1c26;
+  --color-on-surface-variant: #494a58;
+  --color-primary: #5b3df0;
+  --color-primary-container: #4626d9;
+  --color-on-primary: #ffffff;
+  --color-tertiary: #00875a;
+  --color-tertiary-container: #005c3c;
+  --color-on-tertiary-container: #e0f7e5;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #410002;
+  --color-outline: #767680;
+  --color-outline-variant: #c6c5d0;
+  --color-secondary: #5c5d67;
+  --color-secondary-container: #e2e0eb;
+  --color-warning: #8a5a00;
+  --color-warning-container: #ffd68a;
+  --color-on-warning-container: #463200;
+  --glow-primary: rgba(91, 61, 240, 0.35);
+  --glow-tertiary: rgba(0, 135, 90, 0.3);
+  --glow-error: rgba(186, 26, 26, 0.3);
+  --glow-secondary: rgba(92, 93, 103, 0.25);
+  --glow-warning: rgba(138, 90, 0, 0.25);
+}
+
+@layer base {
+  :root {
+    --font-geist: 'Geist', sans-serif;
+    --font-inter: 'Inter', sans-serif;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  html {
+    overscroll-behavior: none;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-inter, Inter, system-ui, sans-serif);
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-on-surface);
+    background-color: var(--color-background);
+    overscroll-behavior: none;
+  }
+}
+
+@layer utilities {
+  .bg-glass {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .bg-glass {
+    background-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .bg-glass-gradient {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(139, 92, 246, 0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .text-glow-primary {
+    text-shadow: 0 0 8px var(--glow-primary);
+  }
+
+  .text-glow-tertiary {
+    text-shadow: 0 0 8px var(--glow-tertiary);
+  }
+
+  .shadow-glass {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .shadow-glass {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .border-glass {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .shadow-glow-primary {
+    box-shadow: 0 0 12px var(--glow-primary);
+  }
+
+  .shadow-glow-tertiary {
+    box-shadow: 0 0 12px var(--glow-tertiary);
+  }
+
+  .shadow-error {
+    box-shadow: 0 0 12px var(--glow-error);
+  }
+
+  .shadow-secondary {
+    box-shadow: 0 0 12px var(--glow-secondary);
+  }
+
+  .shadow-warning {
+    box-shadow: 0 0 12px var(--glow-warning);
+  }
+
+  .shadow-glow-hover {
+    box-shadow: 0 0 20px var(--glow-primary);
+  }
+
+  .shadow-glass-max {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  .dark .shadow-glass-max {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@layer components {
+  .glass-panel {
+    position: relative;
+    background-color: color-mix(in srgb, var(--color-surface-container) 60%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 20%, transparent);
+  }
+
+  html:not(.dark) .glass-panel {
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) 40%, transparent);
+  }
+
+  .active-nav-pill {
+    position: relative;
+    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 0 12px var(--glow-primary);
+    overflow: hidden;
+  }
+
+  .active-nav-pill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--color-primary);
+    box-shadow: 0 0 12px var(--glow-primary);
+  }
+
+  .btn-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-sheen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+    transform: translateX(0);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-sheen:hover::after {
+    transform: translateX(100%);
+  }
+}
+
+@layer base {
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeInUp {
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+/* ─── Animation Delay Utilities ─── */
+@layer utilities {
+  .delay-700 {
+    transition-delay: 700ms;
+  }
+}
+
+/* ─── isHub "tech" custom utilities & components (v4-safe, no @apply) ─── */
+@layer components {
+  .card-tech {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  .dark .card-tech {
+    background-color: #12121a;
+    border-color: #1e1e2e;
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.1), 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+  .card-tech:hover {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 24px rgba(0, 0, 0, 0.18);
+  }
+  .dark .card-tech:hover {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.08), 0 0 0 1px rgba(6, 182, 212, 0.1);
+    border-color: rgba(6, 182, 212, 0.2);
+  }
+}
+
+@layer utilities {
+  .bg-tech-grid {
+    background-image: linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .bg-hero-glow {
+    background-image: radial-gradient(ellipse at 50% 0%, rgba(6, 182, 212, 0.25) 0%, transparent 60%);
+  }
+  .shadow-tech-glow {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.08);
+  }
+}
+
+/* ─── Scrollbar ─── */
+@layer utilities {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    scrollbar-width: none;
+  }
+}
+>>>>>>> origin/main

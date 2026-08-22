@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const courseRoutes = require('./routes/courseRoutes');
@@ -22,6 +23,7 @@ app.use(express.json());
 // Routes
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/courses', courseRoutes);
@@ -52,6 +54,20 @@ const startServer = async () => {
     console.log('Database synced.');
   } catch (error) {
     console.error('Unable to sync the database:', error.message);
+  }
+
+  // Idempotent migration for the new `status` column. `sequelize.sync()` creates
+  // missing tables but does NOT add columns to already-existing tables, so an
+  // existing database would otherwise never receive the `status` field. This is
+  // a no-op when the column already exists (created either by sync() on a fresh
+  // database or by this statement on a pre-existing one).
+  try {
+    await sequelize.query(
+      'ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "status" VARCHAR(20) NOT NULL DEFAULT \'active\''
+    );
+    console.log('Users.status column ensured.');
+  } catch (error) {
+    console.error('Unable to ensure Users.status column:', error.message);
   }
 
   app.listen(PORT, () => {

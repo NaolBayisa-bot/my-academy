@@ -12,4 +12,9 @@ export default defineConfig({
       },
     },
   },
+  // Avoid the root-owned ./dist left by a prior sudo run.
+  build: {
+    outDir: 'build-out',
+    emptyOutDir: true,
+  },
 })
