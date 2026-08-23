@@ -49,7 +49,7 @@ exports.register = async (req, res, next) => {
 
 // POST /api/auth/login
 // Verifies credentials and returns a signed JWT plus the user info
-// (without password_hash).
+// (without password_hash). Returns 401 if user is suspended.
 exports.login = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -58,6 +58,10 @@ exports.login = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    if (user.suspended) {
+      return res.status(401).json({ error: 'Your account has been suspended. Please contact support.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);

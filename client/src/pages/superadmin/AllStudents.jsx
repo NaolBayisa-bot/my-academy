@@ -4,11 +4,12 @@ import api from '../../api/axios'
 
 // Students overview page shared by two roles:
 //  - super_admin     -> every category, each section listing that category's
-//                       students (GET /api/admin/students, grouped).
+//                      students (GET /api/admin/students, grouped).
 //  - category_admin  -> only the admin's own category, listing just those
-//                       students (GET /api/admin/category/:id/students).
+//                      students (GET /api/admin/category/:id/students).
 //
-// Read-only: no actions are exposed on this page.
+// For super_admin: actions are exposed (suspend/unsuspend/delete).
+// For category_admin: read-only.
 const NULL_CATEGORY_ID = '00000000-0000-0000-0000-000000000000'
 
 function AllStudents() {
@@ -19,6 +20,9 @@ function AllStudents() {
   const [studentsByCategory, setStudentsByCategory] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState(null)
 
   const loadCategories = async () => {
     const res = await api.get('/categories')
@@ -49,7 +53,7 @@ function AllStudents() {
         if (!cancelled) {
           setError(
             err.response?.data?.error ||
-              'Failed to load students. Please try again.'
+            'Failed to load students. Please try again.'
           )
         }
       } finally {
@@ -62,6 +66,67 @@ function AllStudents() {
     }
   }, [isSuperAdmin, user?.category_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Action handlers
+  const handleSuspend = async (studentId, studentName) => {
+    setActionLoading(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.patch(`/admin/students/${studentId}/suspend`)
+      setSuccess(`Student "${studentName}" has been suspended.`)
+      // Refresh the students list
+      await loadStudents()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to suspend student.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleUnsuspend = async (studentId, studentName) => {
+    setActionLoading(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.patch(`/admin/students/${studentId}/unsuspend`)
+      setSuccess(`Student "${studentName}" has been unsuspended.`)
+      // Refresh the students list
+      await loadStudents()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to unsuspend student.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDelete = async (studentId, studentName) => {
+    if (!window.confirm(`Are you sure you want to delete "${studentName}"? This action cannot be undone.`)) {
+      return
+    }
+    setActionLoading(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.delete(`/admin/students/${studentId}`)
+      setSuccess(`Student "${studentName}" has been deleted.`)
+      // Refresh the students list
+      await loadStudents()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete student.')
+    } finally {
+      setActionLoading(false)
+      setStudentToDelete(null)
+    }
+  }
+
+  const confirmDelete = (student) => {
+    setStudentToDelete(student)
+  }
+
+  const cancelDelete = () => {
+    setStudentToDelete(null)
+  }
+
   // Categories that get their own section: all of them for a super_admin,
   // only the admin's own category otherwise.
   const visibleCategories = isSuperAdmin
@@ -72,31 +137,81 @@ function AllStudents() {
     ? studentsByCategory[NULL_CATEGORY_ID] || []
     : []
 
-  const renderStudentTable = (students) => (
-    <table style={tableStyle}>
-      <thead>
-        <tr>
-          <th style={thStyle}>Name</th>
-          <th style={thStyle}>Email</th>
-          <th style={thStyle}>Current Course</th>
-          <th style={thStyle}>Enrollment Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {students.map((student) => (
-          <tr key={student.id}>
-            <td style={tdStyle}>{student.name}</td>
-            <td style={tdStyle}>{student.email}</td>
-            <td style={tdStyle}>
-              {student.currentEnrollment?.course?.title || '—'}
-            </td>
-            <td style={tdStyle}>
-              {student.currentEnrollment?.status || 'none'}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+  const renderStudentList = (students) => (
+    <div className="student-list-wrap">
+      <div className="student-list-head">
+        <span>Name</span>
+        <span>Email</span>
+        <span>Course</span>
+        <span>Status</span>
+        {isSuperAdmin && <span className="student-actions-col">Actions</span>}
+      </div>
+
+      {students.map((student) => (
+        <article key={student.id} className="student-row">
+          <div className="student-name-block">
+            <div className="avatar">{student.name?.charAt(0)?.toUpperCase() || 'S'}</div>
+            <div>
+              <strong>{student.name}</strong>
+              {student.suspended && (
+                <span className="chip error" style={{ marginLeft: '8px' }}>
+                  Suspended
+                </span>
+              )}
+            </div>
+          </div>
+
+          <span className="student-email">{student.email}</span>
+          <span className="student-course">{student.currentEnrollment?.course?.title || '—'}</span>
+
+          <span
+            className={`status-inline ${student.currentEnrollment?.status === 'active' || student.currentEnrollment?.status === 'approved'
+                ? 'live'
+                : student.currentEnrollment?.status
+                  ? 'pending'
+                  : 'neutral'
+              }`}
+          >
+            {student.currentEnrollment?.status || 'No enrollment'}
+          </span>
+
+          {isSuperAdmin && (
+            <div className="student-actions">
+              {student.suspended ? (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => handleUnsuspend(student.id, student.name)}
+                  disabled={actionLoading}
+                  title="Unsuspend student"
+                >
+                  ✓
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => handleSuspend(student.id, student.name)}
+                  disabled={actionLoading}
+                  title="Suspend student"
+                >
+                  ⸍
+                </button>
+              )}
+              <button
+                type="button"
+                className="danger-btn"
+                onClick={() => confirmDelete(student)}
+                disabled={actionLoading}
+                title="Delete student"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </article>
+      ))}
+    </div>
   )
 
   if (loading) {
@@ -104,60 +219,78 @@ function AllStudents() {
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return <p className="form-error">{error}</p>
+  }
+
+  // Delete confirmation modal
+  const renderDeleteModal = () => {
+    if (!studentToDelete) return null
+    return (
+      <div className="modal-overlay" onClick={cancelDelete}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h3>Confirm Deletion</h3>
+          <p>Are you sure you want to permanently delete "<strong>{studentToDelete.name}</strong>"?</p>
+          <p>This will remove the student and all their enrollments, progress, and related data.</p>
+          <div className="modal-actions">
+            <button className="secondary-btn" onClick={cancelDelete} disabled={actionLoading}>
+              Cancel
+            </button>
+            <button className="danger-btn" onClick={() => handleDelete(studentToDelete.id, studentToDelete.name)} disabled={actionLoading}>
+              {actionLoading ? 'Deleting...' : 'Delete Student'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>{isSuperAdmin ? 'All Students' : 'My Students'}</h1>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{isSuperAdmin ? 'All Students' : 'My Students'}</h1>
+          <p className="page-subtitle">
+            {isSuperAdmin
+              ? 'Review all learners, manage suspensions, and delete inactive accounts.'
+              : 'Review active learners and their course progress at a glance.'
+            }
+          </p>
+        </div>
+      </div>
+
+      {error && <p className="form-error">{error}</p>}
+      {success && <p className="success-message">{success}</p>}
 
       {visibleCategories.map((category) => {
         const students = studentsByCategory[category.id] || []
         return (
-          <section key={category.id} style={{ marginBottom: '28px' }}>
-            <h2 style={sectionTitleStyle}>{category.name}</h2>
+          <section key={category.id} className="section-shell">
+            <div className="card-top" style={{ marginBottom: '16px' }}>
+              <h3>{category.name}</h3>
+              <span className="chip neutral">{students.length} students</span>
+            </div>
             {students.length === 0 ? (
-              <p style={{ color: '#666' }}>
-                No students in this category yet.
-              </p>
+              <p className="page-subtitle">No students in this category yet.</p>
             ) : (
-              renderStudentTable(students)
+              renderStudentList(students)
             )}
           </section>
         )
       })}
 
       {uncategorized.length > 0 && (
-        <section key={NULL_CATEGORY_ID} style={{ marginBottom: '28px' }}>
-          <h2 style={sectionTitleStyle}>Uncategorized</h2>
-          {renderStudentTable(uncategorized)}
+        <section key={NULL_CATEGORY_ID} className="section-shell">
+          <div className="card-top" style={{ marginBottom: '16px' }}>
+            <h3>Uncategorized</h3>
+            <span className="chip neutral">{uncategorized.length} students</span>
+          </div>
+          {renderStudentList(uncategorized)}
         </section>
       )}
+
+      {renderDeleteModal()}
     </div>
   )
-}
-
-const tableStyle = {
-  borderCollapse: 'collapse',
-  width: '100%',
-  maxWidth: '840px',
-}
-
-const thStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-  background: '#f5f5f5',
-}
-
-const tdStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
-}
-
-const sectionTitleStyle = {
-  borderBottom: '1px solid #ccc',
-  paddingBottom: '4px',
 }
 
 export default AllStudents

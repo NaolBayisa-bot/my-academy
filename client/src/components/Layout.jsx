@@ -1,74 +1,92 @@
+import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-// Navbar links shown per role. The Layout only decides which links are
-// visible; access is still enforced by each route's ProtectedRoute.
 const NAV_LINKS = {
   student: [
-    { label: 'Dashboard', to: '/student/dashboard' },
-    { label: 'Browse Courses', to: '/student/browse' },
-    { label: 'My Enrollment', to: '/student/my-enrollment' },
-    { label: 'History', to: '/student/history' },
+    { label: 'Dashboard', to: '/student/dashboard', icon: '◫' },
+    { label: 'Browse Courses', to: '/student/browse', icon: '◌' },
+    { label: 'My Enrollment', to: '/student/my-enrollment', icon: '▣' },
+    { label: 'History', to: '/student/history', icon: '◍' },
   ],
   category_admin: [
-    { label: 'Dashboard', to: '/admin/dashboard' },
-    { label: 'My Students', to: '/admin/students' },
-    { label: 'Courses', to: '/admin/courses' },
-    { label: 'Enrollment Requests', to: '/admin/enrollments' },
-    { label: 'Posts', to: '/admin/posts' },
+    { label: 'Dashboard', to: '/admin/dashboard', icon: '◫' },
+    { label: 'My Students', to: '/admin/students', icon: '◌' },
+    { label: 'Courses', to: '/admin/courses', icon: '▣' },
+    { label: 'Enrollment Requests', to: '/admin/enrollments', icon: '◍' },
+    { label: 'Posts', to: '/admin/posts', icon: '✦' },
   ],
   super_admin: [
-    { label: 'Dashboard', to: '/super-admin/dashboard' },
-    { label: 'Assign Admins', to: '/super-admin/assign-admins' },
-    { label: 'All Students', to: '/super-admin/students' },
-    { label: 'Enrollment Requests', to: '/super-admin/enrollments' },
-    { label: 'Posts', to: '/super-admin/posts' },
+    { label: 'Dashboard', to: '/super-admin/dashboard', icon: '◫' },
+    { label: 'Assign Admins', to: '/super-admin/assign-admins', icon: '▣' },
+    { label: 'All Students', to: '/super-admin/students', icon: '◌' },
+    { label: 'Enrollment Requests', to: '/super-admin/enrollments', icon: '◍' },
+    { label: 'Posts', to: '/super-admin/posts', icon: '✦' },
   ],
 }
 
 function Layout({ children }) {
   const { user, logout } = useAuth()
+  const [collapsed, setCollapsed] = useState(false)
   const links = NAV_LINKS[user?.role] || []
 
   return (
-    <div>
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
-          padding: '12px 20px',
-          background: '#1f2937',
-          color: '#fff',
-        }}
-      >
-        <Link to="/" style={{ color: '#fff', fontWeight: 'bold', textDecoration: 'none' }}>
-          HUISHUB
-        </Link>
-        <nav style={{ display: 'flex', gap: '16px' }}>
+    <div className={`dashboard-shell page-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <aside className={`dashboard-sidebar ${collapsed ? 'collapsed' : ''}`}>
+        <div className="sidebar-header">
+          <div className="brand-block">
+            <div className="brand-mark">IS</div>
+            <span className="brand-name">IS Hub Academy</span>
+          </div>
+
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? '›' : '‹'}
+          </button>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Main navigation">
           {links.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
-              style={({ isActive }) => ({
-                color: '#fff',
-                textDecoration: 'none',
-                fontWeight: isActive ? 'bold' : 'normal',
-                borderBottom: isActive ? '2px solid #fff' : 'none',
-              })}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
-              {link.label}
+              <span className="sidebar-icon">{link.icon}</span>
+              <span>{link.label}</span>
             </NavLink>
           ))}
         </nav>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span>{user?.name}</span>
-          <button type="button" onClick={logout} style={{ cursor: 'pointer' }}>
-            Logout
-          </button>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-pill">{user?.name || 'User'}</div>
         </div>
-      </header>
-      <main style={{ padding: '20px' }}>{children}</main>
+      </aside>
+
+      <div className="dashboard-main">
+        <header className="dashboard-topbar">
+          <div>
+            <h1>Good evening, {user?.name || 'User'} </h1>
+            <p>Here&apos;s what&apos;s happening across your cloud resources.</p>
+          </div>
+
+          <div className="topbar-actions">
+            <div className="user-badge">
+              <div className="user-avatar">{(user?.name || 'U').charAt(0)}</div>
+              <span>{user?.name || 'User'}</span>
+            </div>
+            <button type="button" className="logout-button" onClick={logout}>
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <main className="dashboard-content">{children}</main>
+      </div>
     </div>
   )
 }

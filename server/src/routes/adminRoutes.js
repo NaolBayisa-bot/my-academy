@@ -6,6 +6,9 @@ const {
   getStudentsByCategory,
   getAllStudents,
   getOverview,
+  suspendStudent,
+  unsuspendStudent,
+  deleteStudent,
 } = require('../controllers/adminController');
 const {
   getPendingEnrollments,
@@ -92,6 +95,35 @@ router.patch(
   authenticate,
   authorize('super_admin', 'category_admin'),
   rejectEnrollment
+);
+
+// --- Student management routes (super_admin only) ---
+
+// PATCH /api/admin/students/:id/suspend
+// Suspends a student by setting suspended=true.
+router.patch(
+  '/students/:id/suspend',
+  authenticate,
+  authorize('super_admin'),
+  suspendStudent
+);
+
+// PATCH /api/admin/students/:id/unsuspend
+// Unsuspends a student by setting suspended=false.
+router.patch(
+  '/students/:id/unsuspend',
+  authenticate,
+  authorize('super_admin'),
+  unsuspendStudent
+);
+
+// DELETE /api/admin/students/:id
+// Permanently deletes a student and all their associated data.
+router.delete(
+  '/students/:id',
+  authenticate,
+  authorize('super_admin'),
+  deleteStudent
 );
 
 module.exports = router;

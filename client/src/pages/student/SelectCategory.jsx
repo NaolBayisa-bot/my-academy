@@ -50,7 +50,7 @@ function SelectCategory() {
     } catch (err) {
       setSelectError(
         err.response?.data?.error ||
-          'Failed to select category. Please try again.'
+        'Failed to select category. Please try again.'
       )
     } finally {
       setSelectingId(null)
@@ -58,24 +58,46 @@ function SelectCategory() {
   }
 
   if (loading) {
-    return <div>Loading categories...</div>
+    return (
+      <div className="content-page">
+        <div className="section-shell">
+          <p>Loading categories...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Select Your Category</h1>
-      {fetchError && <p style={{ color: 'red' }}>{fetchError}</p>}
-      {selectError && <p style={{ color: 'red' }}>{selectError}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Start here</p>
+          <h1 className="page-title">Select Your Category</h1>
+        </div>
+      </div>
+
+      {fetchError && (
+        <div className="section-shell error-panel">
+          <p>{fetchError}</p>
+        </div>
+      )}
+      {selectError && (
+        <div className="section-shell error-panel">
+          <p>{selectError}</p>
+        </div>
+      )}
+
+      <div className="category-picker-grid">
         {categories.map((category) => (
           <button
             key={category.id}
             type="button"
+            className="category-choice"
             onClick={() => handleSelect(category)}
             disabled={selectingId === category.id}
-            style={{ padding: '24px', fontSize: '16px', cursor: 'pointer' }}
           >
-            {selectingId === category.id ? 'Selecting...' : category.name}
+            <span className="category-choice-icon">◈</span>
+            <span>{selectingId === category.id ? 'Selecting...' : category.name}</span>
           </button>
         ))}
       </div>

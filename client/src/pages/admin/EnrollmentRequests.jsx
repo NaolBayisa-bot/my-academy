@@ -131,40 +131,44 @@ function EnrollmentRequests() {
   }
 
   if (loading) {
-    return <div>Loading...</div>
-  }
-
-  if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="content-page">
+        <div className="section-shell">
+          <p>Loading enrollment requests...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div>
-      <h1>Enrollment Requests</h1>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Access management</p>
+          <h1 className="page-title">Enrollment Requests</h1>
+        </div>
+      </div>
+
+      {error && (
+        <div className="section-shell error-panel">
+          <p>{error}</p>
+        </div>
+      )}
 
       {success && (
-        <p
-          role="status"
-          style={{
-            color: 'green',
-            background: '#e8f5e9',
-            border: '1px solid #66bb6a',
-            borderRadius: '6px',
-            padding: '10px 12px',
-            maxWidth: '720px',
-          }}
-        >
-          {success}
-        </p>
+        <div className="section-shell success-panel">
+          <p>{success}</p>
+        </div>
       )}
 
       {isSuperAdmin && (
-        <div style={{ margin: '12px 0' }}>
-          <label htmlFor="category-filter" style={{ marginRight: '8px' }}>
-            Filter by category:
+        <div className="section-shell request-filter-panel">
+          <label htmlFor="category-filter" className="muted-label">
+            Filter by category
           </label>
           <select
             id="category-filter"
+            className="field-select"
             value={selectedCategoryId}
             onChange={(e) => setSelectedCategoryId(e.target.value)}
           >
@@ -178,63 +182,67 @@ function EnrollmentRequests() {
         </div>
       )}
 
-      {requests.length === 0 && <p>No pending enrollment requests.</p>}
+      {requests.length === 0 ? (
+        <div className="section-shell empty-state">
+          <p>No pending enrollment requests.</p>
+        </div>
+      ) : (
+        <div className="request-table-wrap">
+          <div className="request-table-head">
+            <span>Student</span>
+            <span>Course</span>
+            <span>Requested</span>
+            <span>Actions</span>
+          </div>
 
-      {requests.length > 0 && (
-        <table
-          style={{ borderCollapse: 'collapse', width: '100%', maxWidth: '840px' }}
-        >
-          <thead>
-            <tr>
-              <th style={thStyle}>Student</th>
-              <th style={thStyle}>Course</th>
-              <th style={thStyle}>Requested Date</th>
-              <th style={thStyle}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((request) => (
-              <tr key={request.id}>
-                <td style={tdStyle}>{request.student?.name || '—'}</td>
-                <td style={tdStyle}>{request.course?.title || '—'}</td>
-                <td style={tdStyle}>{formatDate(request.enrolled_at)}</td>
-                <td style={tdStyle}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleApprove(request)}
-                      disabled={actingId === request.id}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleReject(request)}
-                      disabled={actingId === request.id}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          {requests.map((request) => (
+            <article key={request.id} className="request-row">
+              <div className="request-student">
+                <div className="avatar">
+                  {(request.student?.name || 'S').charAt(0).toUpperCase()}
+                </div>
+                <div className="info-block">
+                  <strong>{request.student?.name || '—'}</strong>
+                  <span>{request.student?.email || 'No email'}</span>
+                </div>
+              </div>
+
+              <div className="request-course">
+                <div className="info-block">
+                  <span className="muted-label">Course</span>
+                  <strong>{request.course?.title || '—'}</strong>
+                </div>
+              </div>
+
+              <div className="request-date">
+                <span className="muted-label">Requested</span>
+                <p>{formatDate(request.enrolled_at)}</p>
+              </div>
+
+              <div className="request-actions">
+                <button
+                  type="button"
+                  className="primary-btn small"
+                  onClick={() => handleApprove(request)}
+                  disabled={actingId === request.id}
+                >
+                  {actingId === request.id ? 'Working...' : 'Approve'}
+                </button>
+                <button
+                  type="button"
+                  className="danger-btn small"
+                  onClick={() => handleReject(request)}
+                  disabled={actingId === request.id}
+                >
+                  Reject
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
       )}
     </div>
   )
-}
-
-const thStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
-  textAlign: 'left',
-  background: '#f5f5f5',
-}
-
-const tdStyle = {
-  border: '1px solid #ccc',
-  padding: '8px',
 }
 
 export default EnrollmentRequests

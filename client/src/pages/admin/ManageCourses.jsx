@@ -122,65 +122,113 @@ function ManageCourses() {
   }
 
   return (
-    <div>
-      <h1>Manage Courses</h1>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Manage Courses</h1>
+          <p className="page-subtitle">Create, edit, and organize the learning material for your category.</p>
+        </div>
+        <button type="button" className="primary-btn" onClick={() => setShowAdd((v) => !v)}>
+          {showAdd ? 'Cancel' : 'Add Course'}
+        </button>
+      </div>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      <button type="button" onClick={() => setShowAdd((v) => !v)}>
-        {showAdd ? 'Cancel' : 'Add Course'}
-      </button>
+      {error && <p className="form-error">{error}</p>}
 
       {showAdd && (
-        <form onSubmit={handleAdd} style={{ margin: '12px 0', padding: '12px', border: '1px solid #ccc', maxWidth: '480px' }}>
-          <div>
-            <label>
-              Title
-              <input type="text" value={addTitle} onChange={(e) => setAddTitle(e.target.value)} required />
-            </label>
+        <form onSubmit={handleAdd} className="section-shell form-grid">
+          <div className="field">
+            <label htmlFor="course-title">Title</label>
+            <input
+              id="course-title"
+              type="text"
+              value={addTitle}
+              onChange={(e) => setAddTitle(e.target.value)}
+              required
+              placeholder="Course title"
+            />
           </div>
-          <div>
-            <label>
-              Description
-              <textarea value={addDescription} onChange={(e) => setAddDescription(e.target.value)} rows="3" />
-            </label>
+
+          <div className="field">
+            <label htmlFor="course-description">Description</label>
+            <textarea
+              id="course-description"
+              value={addDescription}
+              onChange={(e) => setAddDescription(e.target.value)}
+              rows="4"
+              placeholder="Write a short description"
+            />
           </div>
-          <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save Course'}</button>
+
+          <button type="submit" className="primary-btn" disabled={submitting}>
+            {submitting ? 'Saving...' : 'Save Course'}
+          </button>
         </form>
       )}
 
-      {courses.length === 0 && !loading && <p>No courses in your category yet.</p>}
+      {courses.length === 0 && !loading && <div className="section-shell"><p className="page-subtitle">No courses in your category yet.</p></div>}
 
-      {courses.map((course) => (
-        <div key={course.id} style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '16px', marginBottom: '12px', maxWidth: '480px' }}>
-          <h3>{course.title}</h3>
-          <p>{course.description || 'No description.'}</p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <Link to={`/admin/courses/${course.id}`} state={{ course }}>Lessons</Link>
-            <button type="button" onClick={() => startEdit(course)} disabled={submitting}>Edit</button>
-            <button type="button" onClick={() => handleDelete(course.id)} disabled={submitting}>Delete</button>
-          </div>
+      <div className="card-grid">
+        {courses.map((course) => (
+          <article key={course.id} className="list-card">
+            <div className="card-top">
+              <div>
+                <p className="eyebrow">Course</p>
+                <h3>{course.title}</h3>
+              </div>
+              <span className="chip neutral">Active</span>
+            </div>
 
-          {editingId === course.id && (
-            <form onSubmit={(e) => handleUpdate(e, course.id)} style={{ marginTop: '12px', padding: '12px', border: '1px solid #ccc' }}>
-              <div>
-                <label>
-                  Title
-                  <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required />
-                </label>
-              </div>
-              <div>
-                <label>
-                  Description
-                  <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows="3" />
-                </label>
-              </div>
-              <button type="submit" disabled={submitting}>{submitting ? 'Saving...' : 'Save'}</button>
-              <button type="button" onClick={cancelEdit} disabled={submitting}>Cancel</button>
-            </form>
-          )}
-        </div>
-      ))}
+            <p>{course.description || 'No description.'}</p>
+
+            <div className="button-row">
+              <Link to={`/admin/courses/${course.id}`} state={{ course }} className="secondary-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                Lessons
+              </Link>
+              <button type="button" className="secondary-btn" onClick={() => startEdit(course)} disabled={submitting}>
+                Edit
+              </button>
+              <button type="button" className="danger-btn" onClick={() => handleDelete(course.id)} disabled={submitting}>
+                Delete
+              </button>
+            </div>
+
+            {editingId === course.id && (
+              <form onSubmit={(e) => handleUpdate(e, course.id)} className="form-grid">
+                <div className="field">
+                  <label htmlFor={`edit-title-${course.id}`}>Title</label>
+                  <input
+                    id={`edit-title-${course.id}`}
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor={`edit-description-${course.id}`}>Description</label>
+                  <textarea
+                    id={`edit-description-${course.id}`}
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    rows="3"
+                  />
+                </div>
+
+                <div className="button-row">
+                  <button type="submit" className="primary-btn" disabled={submitting}>
+                    {submitting ? 'Saving...' : 'Save'}
+                  </button>
+                  <button type="button" className="ghost-btn" onClick={cancelEdit} disabled={submitting}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </article>
+        ))}
+      </div>
     </div>
   )
 }

@@ -75,50 +75,90 @@ function BrowseCourses() {
     : 'You have an in-progress course. Finish or withdraw from it before requesting a new enrollment.'
 
   return (
-    <div>
-      <h1>Browse Courses</h1>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Learning catalog</p>
+          <h1 className="page-title">Browse Courses</h1>
+        </div>
+      </div>
 
       {hasActiveEnrollment && (
-        <div style={{ padding: '12px', marginBottom: '16px', background: '#fff3cd', border: '1px solid #ffc107' }}>
-          {bannerMessage}
+        <div className="section-shell notice-panel">
+          <div className="card-top">
+            <div className="info-block">
+              <span className="muted-label">Enrollment status</span>
+              <p>{bannerMessage}</p>
+            </div>
+            <span className="chip alert">{enrollment.status}</span>
+          </div>
         </div>
       )}
-      {successMessage && (
-        <p style={{ color: 'green' }}>{successMessage}</p>
-      )}
-      {requestError && <p style={{ color: 'red' }}>{requestError}</p>}
-      {fetchError && <p style={{ color: 'red' }}>{fetchError}</p>}
 
-      {loading && <div>Loading courses...</div>}
+      {successMessage && (
+        <div className="section-shell success-panel">
+          <p>{successMessage}</p>
+        </div>
+      )}
+      {requestError && (
+        <div className="section-shell error-panel">
+          <p>{requestError}</p>
+        </div>
+      )}
+      {fetchError && (
+        <div className="section-shell error-panel">
+          <p>{fetchError}</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="section-shell">
+          <p>Loading courses...</p>
+        </div>
+      )}
 
       {!loading && courses.length === 0 && !fetchError && (
-        <p>No courses available in your category yet.</p>
+        <div className="section-shell empty-state">
+          <p>No courses available in your category yet.</p>
+        </div>
       )}
 
-      {courses.map((course) => (
-        <div
-          key={course.id}
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '12px',
-            maxWidth: '480px',
-          }}
-        >
-          <h3>{course.title}</h3>
-          <p>{course.description || 'No description provided.'}</p>
-          <button
-            type="button"
-            onClick={() => handleRequest(course)}
-            disabled={hasActiveEnrollment || requestingId === course.id}
-          >
-            {requestingId === course.id
-              ? 'Requesting...'
-              : 'Request Enrollment'}
-          </button>
-        </div>
-      ))}
+      <div className="card-grid">
+        {courses.map((course) => (
+          <article key={course.id} className="list-card course-card">
+            <div className="card-top">
+              <div className="info-block">
+                <p className="eyebrow">Course</p>
+                <h3>{course.title}</h3>
+              </div>
+              <span className="chip neutral">Open</span>
+            </div>
+
+            <p className="post-body">
+              {course.description || 'No description provided.'}
+            </p>
+
+            <div className="meta-row">
+              <span>{course.category?.name || 'Your category'}</span>
+              <span>•</span>
+              <span>{course.lessons?.length || 'Flexible'} lessons</span>
+            </div>
+
+            <div className="button-row">
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() => handleRequest(course)}
+                disabled={hasActiveEnrollment || requestingId === course.id}
+              >
+                {requestingId === course.id
+                  ? 'Requesting...'
+                  : 'Request Enrollment'}
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   )
 }

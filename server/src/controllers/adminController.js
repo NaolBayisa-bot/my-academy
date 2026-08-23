@@ -1,4 +1,4 @@
-const { User, Category, Course, Enrollment, sequelize } = require('../models');
+const { User, Category, Course, Enrollment, LessonProgress, sequelize } = require('../models');
 
 // Strip sensitive fields from a user instance before sending it in a response.
 const serializeUser = (user) => {
@@ -310,6 +310,187 @@ exports.deassignCategoryAdmin = async (req, res) => {
         name: category.name,
         admin_id: null,
       },
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// PATCH /api/admin/students/:id/suspend
+// Suspends a student by setting suspended=true.
+// Only super_admin can perform this action.
+exports.suspendStudent = async (req, res) => {
+  const { id } = req.params;
+
+  // Validate UUID format
+  if (
+    !id ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  ) {
+    return res.status(400).json({ error: 'Invalid student ID.' });
+  }
+
+  try {
+    // Double-check the user is a super_admin
+    const currentUser = await User.findByPk(req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    if (currentUser.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Forbidden: insufficient role.' });
+    }
+
+    const student = await User.findByPk(id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    if (student.role !== 'student') {
+      return res
+        .status(400)
+        .json({ error: 'This user is not a student and cannot be suspended.' });
+    }
+
+    if (student.suspended) {
+      return res
+        .status(400)
+        .json({ error: 'Student is already suspended.' });
+    }
+
+    await student.update({ suspended: true });
+
+    return res.status(200).json({
+      message: 'Student suspended successfully.',
+      student: serializeUser(student),
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// PATCH /api/admin/students/:id/unsuspend
+// Unsuspends a student by setting suspended=false.
+// Only super_admin can perform this action.
+exports.unsuspendStudent = async (req, res) => {
+  const { id } = req.params;
+
+  // Validate UUID format
+  if (
+    !id ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  ) {
+    return res.status(400).json({ error: 'Invalid student ID.' });
+  }
+
+  try {
+    // Double-check the user is a super_admin
+    const currentUser = await User.findByPk(req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    if (currentUser.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Forbidden: insufficient role.' });
+    }
+
+    const student = await User.findByPk(id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    if (student.role !== 'student') {
+      return res
+        .status(400)
+        .json({ error: 'This user is not a student.' });
+    }
+
+    if (!student.suspended) {
+      return res
+        .status(400)
+        .json({ error: 'Student is not suspended.' });
+    }
+
+    await student.update({ suspended: false });
+
+    return res.status(200).json({
+      message: 'Student unsuspended successfully.',
+      student: serializeUser(student),
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// DELETE /api/admin/students/:id
+// Permanently deletes a student and all their associated data.
+// Only super_admin can perform this action.
+exports.deleteStudent = async (req, res) => {
+  const { id } = req.params;
+
+  // Validate UUID format
+  if (
+    !id ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  ) {
+    return res.status(400).json({ error: 'Invalid student ID.' });
+  }
+
+  try {
+    // Double-check the user is a super_admin
+    const currentUser = await User.findByPk(req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    if (currentUser.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Forbidden: insufficient role.' });
+    }
+
+    const student = await User.findByPk(id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    if (student.role !== 'student') {
+      return res
+        .status(400)
+        .json({ error: 'This user is not a student.' });
+    }
+
+    // Delete all associated records in a transaction
+    // Order matters: LessonProgress -> Enrollment -> Student
+    await sequelize.transaction(async (t) => {
+      // Delete all lesson progress records for this student's enrollments
+      const enrollments = await Enrollment.findAll({
+        where: { student_id: student.id },
+        transaction: t,
+      });
+
+      const enrollmentIds = enrollments.map((e) => e.id);
+      if (enrollmentIds.length > 0) {
+        await LessonProgress.destroy({
+          where: { enrollment_id: enrollmentIds },
+          transaction: t,
+        });
+      }
+
+      // Delete all enrollments for this student
+      await Enrollment.destroy({
+        where: { student_id: student.id },
+        transaction: t,
+      });
+
+      // Delete the student
+      await student.destroy({ transaction: t });
+    });
+
+    return res.status(200).json({
+      message: 'Student deleted successfully.',
+      deletedStudentId: student.id,
     });
   } catch (error) {
     // eslint-disable-next-line no-console

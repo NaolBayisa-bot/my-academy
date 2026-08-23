@@ -1,11 +1,13 @@
 const jwt = require('jsonwebtoken');
+const { User } = require('../models');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Middleware that reads the JWT from the `Authorization: Bearer <token>`
 // header, verifies it, and attaches the decoded payload ({ id, role }) to
 // `req.user`. Returns 401 when the token is missing or invalid.
-exports.authenticate = (req, res, next) => {
+// Also checks if the user is suspended and returns 401 if so.
+exports.authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -18,6 +20,17 @@ exports.authenticate = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Check if user is suspended
+    const user = await User.findByPk(decoded.id);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found.' });
+    }
+    
+    if (user.suspended) {
+      return res.status(401).json({ error: 'Your account has been suspended. Please contact support.' });
+    }
+    
     req.user = decoded;
     next();
   } catch (error) {

@@ -118,119 +118,110 @@ function Posts() {
   }
 
   return (
-    <div>
-      <h1>Posts</h1>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {/* New post form — category_id is attached automatically per role. */}
-      <form
-        onSubmit={handleSubmit}
-        style={{ margin: '12px 0', padding: '12px', border: '1px solid #ccc', maxWidth: '560px' }}
-      >
+    <div className="content-page">
+      <div className="page-header">
         <div>
-          <label>
-            Title
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              style={{ display: 'block', width: '100%' }}
-            />
-          </label>
+          <h1 className="page-title">Posts</h1>
+          <p className="page-subtitle">Create and manage announcements across your academy channels.</p>
         </div>
-        <div>
-          <label>
-            Content
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows="5"
-              required
-              style={{ display: 'block', width: '100%' }}
-            />
-          </label>
+      </div>
+
+      {error && <p className="form-error">{error}</p>}
+
+      <form onSubmit={handleSubmit} className="section-shell form-grid">
+        <div className="field">
+          <label htmlFor="post-title">Title</label>
+          <input
+            id="post-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            placeholder="Post title"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="post-content">Content</label>
+          <textarea
+            id="post-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows="5"
+            required
+            placeholder="Write your message..."
+          />
         </div>
 
         {isSuperAdmin && (
-          <div style={{ margin: '8px 0' }}>
-            <span style={{ display: 'block', marginBottom: '4px' }}>Scope</span>
-            <label style={{ marginRight: '16px' }}>
-              <input
-                type="radio"
-                name="scope"
-                checked={postToMyCategory}
-                onChange={() => setPostToMyCategory(true)}
-              />{' '}
-              Post to my category
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="scope"
-                checked={!postToMyCategory}
-                onChange={() => setPostToMyCategory(false)}
-              />{' '}
-              Post globally to all users
-            </label>
+          <div className="field">
+            <label>Scope</label>
+            <div className="button-row">
+              <label className="secondary-btn">
+                <input
+                  type="radio"
+                  name="scope"
+                  checked={postToMyCategory}
+                  onChange={() => setPostToMyCategory(true)}
+                />{' '}
+                Post to my category
+              </label>
+              <label className="secondary-btn">
+                <input
+                  type="radio"
+                  name="scope"
+                  checked={!postToMyCategory}
+                  onChange={() => setPostToMyCategory(false)}
+                />{' '}
+                Post globally
+              </label>
+            </div>
           </div>
         )}
 
-        <button type="submit" disabled={submitting}>
+        <button type="submit" className="primary-btn" disabled={submitting}>
           {submitting ? 'Saving...' : 'Create Post'}
         </button>
       </form>
 
-      {/* Existing posts, newest first (server orders by created_at DESC). */}
       {posts.length === 0 ? (
-        <p>No posts yet.</p>
+        <div className="section-shell">
+          <p className="page-subtitle">No posts yet.</p>
+        </div>
       ) : (
-        posts.map((post) => (
-          <div key={post.id} style={postCardStyle}>
-            <h3 style={{ marginTop: '0' }}>{post.title}</h3>
-            <p style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
-            <div style={postMetaStyle}>
-              <span>By {post.author?.name || '—'}</span>
-              <span>{formatDate(post.created_at)}</span>
-              {post.category_id === null && (
-                <span style={globalBadgeStyle}>Global</span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(post.id)}
-              disabled={deletingId === post.id}
-            >
-              {deletingId === post.id ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        ))
+        <div className="card-grid">
+          {posts.map((post) => (
+            <article key={post.id} className="list-card">
+              <div className="card-top">
+                <div>
+                  <p className="eyebrow">Update</p>
+                  <h3>{post.title}</h3>
+                </div>
+                {post.category_id === null && <span className="chip success">Global</span>}
+              </div>
+
+              <p className="post-body" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
+
+              <div className="meta-row">
+                <span>By {post.author?.name || '—'}</span>
+                <span>•</span>
+                <span>{formatDate(post.created_at)}</span>
+              </div>
+
+              <button
+                type="button"
+                className="danger-btn"
+                onClick={() => handleDelete(post.id)}
+                disabled={deletingId === post.id}
+              >
+                {deletingId === post.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </article>
+          ))}
+        </div>
       )}
     </div>
   )
-}
-
-const postCardStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '16px',
-  marginBottom: '12px',
-  maxWidth: '640px',
-}
-
-const postMetaStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  fontSize: '13px',
-  color: '#666',
-  marginBottom: '8px',
-}
-
-const globalBadgeStyle = {
-  color: '#2e7d32',
-  fontWeight: 'bold',
 }
 
 export default Posts

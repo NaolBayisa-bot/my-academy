@@ -33,41 +33,74 @@ function History() {
     value ? new Date(value).toLocaleDateString() : 'Unknown'
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="content-page">
+        <div className="section-shell">
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="content-page">
+        <div className="section-shell error-panel">
+          <p>{error}</p>
+        </div>
+      </div>
+    )
   }
 
   if (enrollments.length === 0) {
     return (
-      <div>
-        <h1>My History</h1>
-        <p>You have no completed courses yet.</p>
+      <div className="content-page">
+        <div className="page-header">
+          <div>
+            <p className="eyebrow">Progress tracker</p>
+            <h1 className="page-title">My History</h1>
+          </div>
+        </div>
+
+        <div className="section-shell empty-state">
+          <p>You have no completed courses yet.</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <h1>My History</h1>
-      {enrollments.map((enrollment) => (
-        <div
-          key={enrollment.id}
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '12px',
-            maxWidth: '480px',
-          }}
-        >
-          <h3>{enrollment.course?.title || 'Untitled Course'}</h3>
-          <p>Category: {enrollment.course?.category?.name || 'Unknown'}</p>
-          <p>Completed: {formatDate(enrollment.completed_at)}</p>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Progress tracker</p>
+          <h1 className="page-title">My History</h1>
         </div>
-      ))}
+      </div>
+
+      <div className="card-grid">
+        {enrollments.map((enrollment) => (
+          <article key={enrollment.id} className="list-card history-card">
+            <div className="card-top">
+              <div className="info-block">
+                <p className="eyebrow">Completed</p>
+                <h3>{enrollment.course?.title || 'Untitled Course'}</h3>
+              </div>
+              <span className="chip success">Done</span>
+            </div>
+
+            <div className="info-block">
+              <span className="muted-label">Category</span>
+              <p>{enrollment.course?.category?.name || 'Unknown'}</p>
+            </div>
+
+            <div className="info-block">
+              <span className="muted-label">Finished</span>
+              <p>{formatDate(enrollment.completed_at)}</p>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   )
 }

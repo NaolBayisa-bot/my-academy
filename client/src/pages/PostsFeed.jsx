@@ -31,9 +31,9 @@ function PostsFeed() {
         if (!cancelled) {
           setPosts(postsRes.data.posts || [])
           const names = {}
-          ;(categoriesRes.data.categories || []).forEach((category) => {
-            names[category.id] = category.name
-          })
+            ; (categoriesRes.data.categories || []).forEach((category) => {
+              names[category.id] = category.name
+            })
           setCategoryNames(names)
         }
       } catch (err) {
@@ -72,49 +72,43 @@ function PostsFeed() {
   }
 
   return (
-    <div>
-      <h1>Posts</h1>
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Community</p>
+          <h1 className="page-title">Posts</h1>
+        </div>
+      </div>
 
       {posts.length === 0 ? (
-        <p>No posts yet.</p>
+        <div className="section-shell empty-state">
+          <p>No posts yet.</p>
+        </div>
       ) : (
-        <ul style={listStyle}>
+        <div className="card-grid single-column-grid">
           {posts.map((post) => (
-            <li key={post.id} style={itemStyle}>
-              <h3 style={{ marginTop: '0' }}>{post.title}</h3>
-              <p style={{ margin: '4px 0' }}>{post.content}</p>
-              <p style={metaStyle}>
-                <span style={{ fontWeight: 'bold' }}>
-                  {post.author?.name || 'Unknown author'}
-                </span>{' '}
-                — {categoryLabel(post)} ·{' '}
+            <article key={post.id} className="list-card post-card">
+              <div className="card-top">
+                <div className="info-block">
+                  <p className="eyebrow">{categoryLabel(post)}</p>
+                  <h3>{post.title}</h3>
+                </div>
+                <span className="chip neutral">New</span>
+              </div>
+
+              <p className="post-body">{post.content}</p>
+
+              <div className="meta-row">
+                <span>{post.author?.name || 'Unknown author'}</span>
+                <span>•</span>
                 <span>{formatDate(post.created_at)}</span>
-              </p>
-            </li>
+              </div>
+            </article>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   )
-}
-
-const listStyle = {
-  listStyle: 'none',
-  padding: 0,
-  margin: 0,
-}
-
-const itemStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '12px',
-  marginBottom: '12px',
-}
-
-const metaStyle = {
-  fontSize: '12px',
-  color: '#666',
-  margin: '0',
 }
 
 export default PostsFeed

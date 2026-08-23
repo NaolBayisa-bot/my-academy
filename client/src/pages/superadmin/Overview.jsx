@@ -10,20 +10,17 @@ import api from '../../api/axios'
 //
 // This page is the super admin default landing page (/super-admin/dashboard).
 
-function StatCard({ title, value, subtitle }) {
+const chartPalette = ['#38d4ff', '#2dd4bf', '#8b5cf6', '#f59e0b', '#f472b6', '#a3e635']
+
+function StatCard({ title, value, subtitle, accent = 'cyan' }) {
   return (
-    <div style={cardStyle}>
-      <h3 style={{ marginTop: '0', fontSize: '14px', color: '#555' }}>
-        {title}
-      </h3>
-      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '8px 0' }}>
-        {value}
-      </p>
-      {subtitle && (
-        <p style={{ fontSize: '12px', color: '#777', marginBottom: '0' }}>
-          {subtitle}
-        </p>
-      )}
+    <div className={`stat-card stat-card-${accent}`}>
+      <div className="stat-topline">
+        <span className="stat-label">{title}</span>
+        <span className="stat-pill">Live</span>
+      </div>
+      <div className="stat-value">{value}</div>
+      {subtitle && <p className="stat-subtitle">{subtitle}</p>}
     </div>
   )
 }
@@ -43,7 +40,7 @@ function Overview() {
         if (!cancelled) {
           setError(
             err.response?.data?.error ||
-              'Failed to load overview. Please try again.'
+            'Failed to load overview. Please try again.'
           )
         }
       } finally {
@@ -57,11 +54,23 @@ function Overview() {
   }, [])
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="content-page">
+        <div className="section-shell">
+          <p>Loading overview...</p>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return (
+      <div className="content-page">
+        <div className="section-shell error-panel">
+          <p>{error}</p>
+        </div>
+      </div>
+    )
   }
 
   const { totalStudents, totalCourses, completionsPerCategory } =
@@ -71,38 +80,137 @@ function Overview() {
       completionsPerCategory: [],
     }
 
-  return (
-    <div>
-      <h1>Overview</h1>
+  const totalCompletions = completionsPerCategory.reduce(
+    (sum, item) => sum + Number(item.completions || 0),
+    0
+  )
 
-      <div style={gridStyle}>
-        <StatCard title="Total Students" value={totalStudents} />
-        <StatCard title="Total Courses" value={totalCourses} />
-        {completionsPerCategory.map((category) => (
-          <StatCard
-            key={category.category_id}
-            title={category.name}
-            value={category.completions}
-            subtitle="completions"
-          />
-        ))}
+  const chartSegments = completionsPerCategory.reduce((segments, item, index) => {
+    const previous = segments.length ? segments[segments.length - 1].end : 0
+    const value = Number(item.completions || 0)
+    const start = previous
+    const end = previous + (value / Math.max(totalCompletions, 1)) * 100
+    segments.push({
+      name: item.name,
+      value,
+      start,
+      end,
+      color: chartPalette[index % chartPalette.length],
+    })
+    return segments
+  }, [])
+
+  const donutBackground = chartSegments.length
+    ? chartSegments
+      .map(
+        (segment) =>
+          `${segment.color} ${segment.start}% ${Math.min(segment.end, 100)}%`
+      )
+      .join(', ')
+    : '#102033'
+
+  const maxCategoryValue = Math.max(
+    ...completionsPerCategory.map((item) => Number(item.completions || 0)),
+    0
+  )
+
+  return (
+    <div className="content-page">
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Executive summary</p>
+          <h1 className="page-title">Overview</h1>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+        <StatCard title="Total Students" value={totalStudents} subtitle="active learners" accent="cyan" />
+        <StatCard title="Total Courses" value={totalCourses} subtitle="available programs" accent="mint" />
+        <StatCard title="Completions" value={totalCompletions} subtitle="across all categories" accent="purple" />
+      </div>
+
+      <div className="analytics-grid">
+        <div className="section-shell chart-panel">
+          <div className="card-top">
+            <div className="info-block">
+              <p className="eyebrow">Performance</p>
+              <h3>Completion overview</h3>
+            </div>
+            <span className="chip success">{totalCompletions} total</span>
+          </div>
+
+          <div className="donut-layout">
+            <div
+              className="donut-chart"
+              style={{
+                background: `conic-gradient(${donutBackground})`,
+              }}
+            >
+              <div className="donut-center">
+                <strong>{totalCompletions}</strong>
+                <span>completed</span>
+              </div>
+            </div>
+
+            <ul className="chart-legend">
+              {chartSegments.length > 0 ? (
+                chartSegments.map((segment, index) => (
+                  <li key={`${segment.name}-${index}`}>
+                    <span
+                      className="legend-dot"
+                      style={{ background: segment.color }}
+                    />
+                    <span>{segment.name}</span>
+                    <strong>{segment.value}</strong>
+                  </li>
+                ))
+              ) : (
+                <li className="legend-empty">No completion data yet.</li>
+              )}
+            </ul>
+          </div>
+        </div>
+
+        <div className="section-shell">
+          <div className="card-top">
+            <div className="info-block">
+              <p className="eyebrow">Breakdown</p>
+              <h3>Category performance</h3>
+            </div>
+          </div>
+
+          <div className="bar-list">
+            {completionsPerCategory.length > 0 ? (
+              completionsPerCategory.map((category, index) => {
+                const percent = maxCategoryValue
+                  ? (Number(category.completions || 0) / maxCategoryValue) * 100
+                  : 0
+                return (
+                  <div key={category.category_id || index} className="bar-row">
+                    <div className="bar-row-top">
+                      <span>{category.name}</span>
+                      <strong>{category.completions}</strong>
+                    </div>
+                    <div className="bar-track">
+                      <div
+                        className="bar-fill"
+                        style={{
+                          width: `${percent}%`,
+                          background: chartPalette[index % chartPalette.length],
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <p className="empty-mini">No category completion data available.</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
-}
-
-const gridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-  gap: '16px',
-  marginTop: '16px',
-}
-
-const cardStyle = {
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  padding: '16px',
-  textAlign: 'center',
 }
 
 export default Overview

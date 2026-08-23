@@ -33,6 +33,11 @@ const User = sequelize.define(
       // Foreign key to Categories.id (association defined in models/index.js).
       // The DB-level FK is created on sync() once the Categories table exists.
     },
+    suspended: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
   },
   {
     tableName: 'Users',
