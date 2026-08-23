@@ -40,7 +40,7 @@ function EnrollmentRequests() {
         if (!cancelled) {
           setError(
             err.response?.data?.error ||
-              'Failed to load enrollment requests. Please try again.'
+            'Failed to load enrollment requests. Please try again.'
           )
         }
       } finally {
@@ -87,7 +87,7 @@ function EnrollmentRequests() {
     } catch (err) {
       setError(
         err.response?.data?.error ||
-          'Failed to approve enrollment. Please try again.'
+        'Failed to approve enrollment. Please try again.'
       )
     } finally {
       setActingId(null)
@@ -111,7 +111,7 @@ function EnrollmentRequests() {
     } catch (err) {
       setError(
         err.response?.data?.error ||
-          'Failed to reject enrollment. Please try again.'
+        'Failed to reject enrollment. Please try again.'
       )
     } finally {
       setActingId(null)
@@ -124,10 +124,10 @@ function EnrollmentRequests() {
     return Number.isNaN(date.getTime())
       ? '—'
       : date.toLocaleDateString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        })
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
   }
 
   if (loading) {
