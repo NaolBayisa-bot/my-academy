@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../utils/dashboardPath'
 
@@ -22,34 +22,72 @@ function Login() {
   }
 
   return (
-    <div>
-      <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>
-            Email
+    <div className="page-shell auth-shell">
+      <header className="site-header">
+        <div className="brand-block">
+          <div className="brand-mark">IS</div>
+          <span className="brand-name">IS Hub Academy</span>
+        </div>
+
+        <div className="header-actions">
+          <button type="button" className="header-icon-button" aria-label="Help">
+            ?
+          </button>
+          <button type="button" className="header-icon-button" aria-label="Info">
+            i
+          </button>
+          <Link to="/register" className="ghost-link">
+            Register
+          </Link>
+        </div>
+      </header>
+
+      <main className="auth-card">
+        <h1>Welcome back</h1>
+        <span className="auth-subtitle">login — new</span>
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="login-email">
+              Email
+            </label>
             <input
+              id="login-email"
+              className="auth-input"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="john@example.com"
               required
             />
-          </label>
-        </div>
-        <div>
-          <label>
-            Password
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="login-password">
+              Password
+            </label>
             <input
+              id="login-password"
+              className="auth-input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
               required
             />
-          </label>
-        </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit">Login</button>
-      </form>
+          </div>
+
+          {error && <p className="form-error">{error}</p>}
+
+          <button type="submit" className="auth-button">
+            Login
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Don&apos;t have an account? <Link to="/register">Register</Link>
+        </p>
+      </main>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
+import LandingPage from '../pages/LandingPage'
 import NotAuthorized from '../pages/NotAuthorized'
 import Layout from '../components/Layout'
 import StudentDashboard from '../pages/StudentDashboard'
@@ -29,7 +30,7 @@ function RoleRedirect() {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<RoleRedirect />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/403" element={<NotAuthorized />} />
