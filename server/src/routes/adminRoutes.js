@@ -6,6 +6,7 @@ const {
   getStudentsByCategory,
   getAllStudents,
   getOverview,
+  getCategoryStats,
   suspendStudent,
   unsuspendStudent,
   deleteStudent,
@@ -52,6 +53,16 @@ router.get(
 // Returns all students across all categories, grouped by category_id.
 // Super_admin only.
 router.get('/students', authenticate, authorize('super_admin'), getAllStudents);
+
+// GET /api/admin/category-stats
+// Statistical summary for the admin dashboard. category_admin: scoped to
+// their own category. super_admin without a category: global numbers.
+router.get(
+  '/category-stats',
+  authenticate,
+  authorize('super_admin', 'category_admin'),
+  getCategoryStats
+);
 
 // GET /api/admin/overview
 // Dashboard-level counts: total students, total courses, completions per

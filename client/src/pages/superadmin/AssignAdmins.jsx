@@ -33,6 +33,9 @@ function AssignAdmins() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [assigningId, setAssigningId] = useState(null)
+  // Category id pending removal confirmation (inline confirm instead of
+  // window.confirm, which is blocked/silent in embedded browsers & iframes).
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null)
 
   // Per-category transient UI state, keyed by category id so the searchable
   // dropdown + selection are tracked independently for each card.
@@ -123,6 +126,7 @@ function AssignAdmins() {
     setError(null)
     setSuccess(null)
     setAssigningId(category.id)
+    setConfirmRemoveId(null)
     try {
       const res = await api.patch('/admin/deassign-category-admin', {
         categoryId: category.id,
@@ -250,7 +254,7 @@ function AssignAdmins() {
               </div>
 
               {/* Current Admin Section */}
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-[rgba(143,170,205,0.1)] bg-[rgba(9,17,27,0.5)] px-4 py-3">
+              <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border border-[rgba(143,170,205,0.1)] bg-[rgba(9,17,27,0.5)] px-4 py-3">
                 <div className="info-block flex flex-col gap-1 min-w-0">
                   <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Current admin</span>
                   <p className={`m-0 text-sm truncate ${admin ? 'font-medium' : 'text-muted italic'}`}>
@@ -258,25 +262,41 @@ function AssignAdmins() {
                   </p>
                 </div>
 
-                {/* Remove Admin Button */}
-                {admin && (
+                {/* Remove Admin Button — inline confirm (no window.confirm,
+                    which is silently blocked in embedded browsers) */}
+                {admin && confirmRemoveId !== category.id && (
                   <button
                     type="button"
                     className="danger-btn small shrink-0 inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-3.5 py-2 text-sm rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Remove ${admin.name} as admin of "${category.name}"?`
-                        )
-                      ) {
-                        handleDeassign(category)
-                      }
-                    }}
+                    onClick={() => setConfirmRemoveId(category.id)}
                     disabled={busy}
                     title="Remove admin"
                   >
                     Remove
                   </button>
+                )}
+                {admin && confirmRemoveId === category.id && (
+                  <div className="shrink-0 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5">
+                    <span className="text-xs text-red-300 whitespace-nowrap">
+                      Remove {admin.name}?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeassign(category)}
+                      disabled={busy}
+                      className="inline-flex items-center justify-center no-underline bg-red-500/80 hover:bg-red-500 text-white font-semibold px-3 py-1.5 text-xs rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {busy ? 'Removing...' : 'Yes, remove'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemoveId(null)}
+                      disabled={busy}
+                      className="inline-flex items-center justify-center no-underline text-muted hover:text-[var(--text)] px-2.5 py-1.5 text-xs rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 )}
               </div>
 

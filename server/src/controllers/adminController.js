@@ -1,4 +1,4 @@
-const { User, Category, Course, Enrollment, LessonProgress, sequelize } = require('../models');
+const { User, Category, Course, Enrollment, Lesson, LessonProgress, Post, sequelize } = require('../models');
 
 // Strip sensitive fields from a user instance before sending it in a response.
 const serializeUser = (user) => {
@@ -227,14 +227,17 @@ exports.getOverview = async (req, res) => {
   try {
     const totalStudents = await User.count({ where: { role: 'student' } });
     const totalCourses = await Course.count();
+    const totalAdmins = await User.count({ where: { role: 'category_admin' } });
+    const totalLessons = await Lesson.count();
 
-    // Completions per category: iterate over all categories and count
-    // completed enrollments whose course falls in that category.
+    // Completions per category + students per category: iterate over all
+    // categories once and gather both metrics in the same pass.
     const categories = await Category.findAll({
       attributes: ['id', 'name'],
     });
 
     const completionsPerCategory = [];
+    const studentsPerCategory = [];
     for (const category of categories) {
       const categoryCourses = await Course.findAll({
         where: { category_id: category.id },
@@ -251,12 +254,68 @@ exports.getOverview = async (req, res) => {
         name: category.name,
         completions,
       });
+
+      const students = await User.count({
+        where: { role: 'student', category_id: category.id },
+      });
+      studentsPerCategory.push({
+        category_id: category.id,
+        name: category.name,
+        students,
+      });
     }
+
+    // Global enrollment status distribution.
+    const statusRows = await Enrollment.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('status')), 'count'],
+      ],
+      group: ['status'],
+    });
+    const enrollmentsByStatus = { pending: 0, in_progress: 0, completed: 0, rejected: 0 };
+    let totalEnrollments = 0;
+    statusRows.forEach((r) => {
+      const count = Number(r.get('count'));
+      totalEnrollments += count;
+      if (enrollmentsByStatus[r.status] !== undefined) {
+        enrollmentsByStatus[r.status] = count;
+      }
+    });
+    const completionRate = totalEnrollments
+      ? Math.round((enrollmentsByStatus.completed / totalEnrollments) * 100)
+      : 0;
+
+    // Platform content totals.
+    const totalPosts = await Post.count();
+
+    // Latest signups (students) as recent activity.
+    const recentStudents = await User.findAll({
+      where: { role: 'student' },
+      order: [['createdAt', 'DESC']],
+      limit: 6,
+      attributes: ['id', 'name', 'email', 'createdAt'],
+      include: [{ model: Category, attributes: ['name'] }],
+    });
 
     return res.status(200).json({
       totalStudents,
       totalCourses,
+      totalAdmins,
+      totalLessons,
+      totalPosts,
+      totalEnrollments,
+      completionRate,
+      enrollmentsByStatus,
       completionsPerCategory,
+      studentsPerCategory,
+      recentStudents: recentStudents.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        joined_at: u.createdAt,
+        category: u.Category ? u.Category.name : null,
+      })),
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -491,6 +550,114 @@ exports.deleteStudent = async (req, res) => {
     return res.status(200).json({
       message: 'Student deleted successfully.',
       deletedStudentId: student.id,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// GET /api/admin/category-stats
+// Statistical summary for the admin dashboard. Scoped to the caller's own
+// category (category_admin); a super_admin without a category gets global
+// numbers. Returns counts, status distribution, completion rate, per-course
+// enrollment breakdown and the latest enrollments as recent activity.
+exports.getCategoryStats = async (req, res) => {
+  try {
+    // The JWT only carries { id, role }, so resolve the caller's category
+    // from the database rather than trusting the token payload.
+    const currentUser = await User.findByPk(req.user.id, {
+      attributes: ['id', 'category_id'],
+    });
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    const categoryId = currentUser.category_id || null;
+    const whereCourse = categoryId ? { category_id: categoryId } : {};
+    const courses = await Course.findAll({
+      where: whereCourse,
+      attributes: ['id', 'title'],
+    });
+    const courseIds = courses.map((c) => c.id);
+
+    const totalStudents = await User.count(
+      categoryId ? { where: { role: 'student', category_id: categoryId } } : { where: { role: 'student' } }
+    );
+    const totalCourses = courses.length;
+    const totalLessons = courseIds.length
+      ? await Lesson.count({ where: { course_id: courseIds } })
+      : 0;
+
+    const enrollments = courseIds.length
+      ? await Enrollment.findAll({ where: { course_id: courseIds }, attributes: ['status'] })
+      : [];
+    const byStatus = { pending: 0, in_progress: 0, completed: 0, rejected: 0 };
+    enrollments.forEach((e) => {
+      if (byStatus[e.status] !== undefined) byStatus[e.status] += 1;
+    });
+    const totalEnrollments = enrollments.length;
+    const completionRate = totalEnrollments
+      ? Math.round((byStatus.completed / totalEnrollments) * 100)
+      : 0;
+
+    // Per-course enrollment distribution (top courses by enrollment count).
+    const perCourseRows = courseIds.length
+      ? await Enrollment.findAll({
+          where: { course_id: courseIds },
+          attributes: [
+            'course_id',
+            [sequelize.fn('COUNT', sequelize.col('course_id')), 'count'],
+          ],
+          group: ['course_id'],
+        })
+      : [];
+    const countByCourse = new Map(
+      perCourseRows.map((r) => [r.course_id, Number(r.get('count'))])
+    );
+    const perCourse = courses
+      .map((c) => ({ title: c.title, enrollments: countByCourse.get(c.id) || 0 }))
+      .sort((a, b) => b.enrollments - a.enrollments)
+      .slice(0, 5);
+
+    const recentEnrollments = courseIds.length
+      ? await Enrollment.findAll({
+          where: { course_id: courseIds },
+          order: [['enrolled_at', 'DESC']],
+          limit: 6,
+          include: [
+            { model: User, as: 'student', attributes: ['name', 'email'] },
+            { model: Course, attributes: ['title'] },
+          ],
+        })
+      : [];
+
+    const totalPosts = await Post.count(
+      categoryId ? { where: { category_id: categoryId } } : {}
+    );
+
+    return res.status(200).json({
+      stats: {
+        scope: categoryId ? 'category' : 'global',
+        totalStudents,
+        totalCourses,
+        totalLessons,
+        totalPosts,
+        enrollments: {
+          total: totalEnrollments,
+          ...byStatus,
+          completionRate,
+        },
+        perCourse,
+        recentEnrollments: recentEnrollments.map((e) => ({
+          id: e.id,
+          status: e.status,
+          enrolled_at: e.enrolled_at,
+          student: e.student ? { name: e.student.name, email: e.student.email } : null,
+          // Enrollment->Course has no alias, so Sequelize nests it as `Course`.
+          course: (e.course || e.Course) ? { title: (e.course || e.Course).title } : null,
+        })),
+      },
     });
   } catch (error) {
     // eslint-disable-next-line no-console

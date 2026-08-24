@@ -1,26 +1,33 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 
-// Super admin overview/dashboard page.
-//
-// Data flow:
-//  - GET /api/admin/overview -> aggregate counts for the dashboard:
-//    totalStudents, totalCourses, and completionsPerCategory (one entry per
-//    category with that category's completed-enrollment count).
-//
-// This page is the super admin default landing page (/super-admin/dashboard).
+// Super admin statistical dashboard. Data from GET /api/admin/overview:
+// platform counts, global enrollment status distribution + completion rate,
+// completions/students per category, and recent student signups.
 
-const chartPalette = ['#38d4ff', '#2dd4bf', '#8b5cf6', '#f59e0b', '#f472b6', '#a3e635']
+const STATUS_COLORS = {
+  pending: '#f59e0b',
+  in_progress: '#38d7ff',
+  completed: '#2dd4a7',
+  rejected: '#f472b6',
+}
 
-function StatCard({ title, value, subtitle, accent = 'cyan' }) {
+const STATUS_LABELS = {
+  pending: 'Pending',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  rejected: 'Rejected',
+}
+
+function StatCard({ icon, iconBg, title, value, subtitle }) {
   return (
-    <div className={`stat-card stat-card-${accent}`}>
-      <div className="stat-topline flex justify-between items-center">
-        <span className="stat-label text-xs uppercase tracking-wider text-muted font-semibold">{title}</span>
-        <span className="stat-pill text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-soft text-cyan-default">Live</span>
+    <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 min-h-[112px] transition-colors duration-200 hover:border-cyan-default/25">
+      <div className="flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wider text-muted font-semibold">{title}</span>
+        <span className={`w-9 h-9 rounded-xl grid place-items-center text-base ${iconBg}`}>{icon}</span>
       </div>
-      <div className="stat-value text-3xl font-extrabold tracking-tight">{value}</div>
-      {subtitle && <p className="stat-subtitle text-xs text-muted m-0">{subtitle}</p>}
+      <div className="text-3xl font-extrabold tracking-tight leading-none">{value}</div>
+      {subtitle && <p className="text-xs text-muted m-0">{subtitle}</p>}
     </div>
   )
 }
@@ -38,10 +45,7 @@ function Overview() {
         if (!cancelled) setStats(res.data)
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err.response?.data?.error ||
-            'Failed to load overview. Please try again.'
-          )
+          setError(err.response?.data?.error || 'Failed to load overview. Please try again.')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -55,159 +59,192 @@ function Overview() {
 
   if (loading) {
     return (
-      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <p>Loading overview...</p>
-        </div>
+      <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 text-center py-8 text-sm text-muted">
+        Loading overview...
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
-          <p>{error}</p>
-        </div>
-      </div>
+      <p className="m-0 text-red-400 text-sm rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2">
+        {error}
+      </p>
     )
   }
 
-  const { totalStudents, totalCourses, completionsPerCategory } =
-    stats || {
-      totalStudents: 0,
-      totalCourses: 0,
-      completionsPerCategory: [],
-    }
+  const completionsPerCategory = stats.completionsPerCategory || []
+  const studentsPerCategory = stats.studentsPerCategory || []
+  const byStatus = stats.enrollmentsByStatus || {}
+  const totalEnrollments = stats.totalEnrollments || 0
 
   const totalCompletions = completionsPerCategory.reduce(
     (sum, item) => sum + Number(item.completions || 0),
     0
   )
 
-  const chartSegments = completionsPerCategory.reduce((segments, item, index) => {
-    const previous = segments.length ? segments[segments.length - 1].end : 0
-    const value = Number(item.completions || 0)
-    const start = previous
-    const end = previous + (value / Math.max(totalCompletions, 1)) * 100
-    segments.push({
-      name: item.name,
-      value,
-      start,
-      end,
-      color: chartPalette[index % chartPalette.length],
-    })
-    return segments
-  }, [])
-
-  const donutBackground = chartSegments.length
-    ? chartSegments
-      .map(
-        (segment) =>
-          `${segment.color} ${segment.start}% ${Math.min(segment.end, 100)}%`
-      )
-      .join(', ')
+  // Donut segments: global enrollment status distribution.
+  const statusSegments = [
+    { key: 'in_progress', value: byStatus.in_progress || 0 },
+    { key: 'completed', value: byStatus.completed || 0 },
+    { key: 'pending', value: byStatus.pending || 0 },
+    { key: 'rejected', value: byStatus.rejected || 0 },
+  ]
+  let acc = 0
+  const donutBackground = totalEnrollments
+    ? statusSegments
+        .filter((s) => s.value > 0)
+        .map((s) => {
+          const start = (acc / totalEnrollments) * 100
+          acc += s.value
+          const end = (acc / totalEnrollments) * 100
+          return `${STATUS_COLORS[s.key]} ${start}% ${end}%`
+        })
+        .join(', ')
     : '#102033'
 
-  const maxCategoryValue = Math.max(
-    ...completionsPerCategory.map((item) => Number(item.completions || 0)),
-    0
-  )
+  const fmtDate = (iso) =>
+    iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
   return (
-    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-      <div className="page-header mb-6">
-        <div>
-          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Executive summary</p>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Overview</h1>
-        </div>
+    <div className="flex flex-col gap-6">
+      {/* Page header */}
+      <div>
+        <p className="text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Executive summary</p>
+        <h1 className="text-2xl md:text-3xl font-black tracking-tight m-0">Platform Overview</h1>
       </div>
 
-      <div className="stats-grid grid gap-4 sm:grid-cols-3 mb-6">
-        <StatCard title="Total Students" value={totalStudents} subtitle="active learners" accent="cyan" />
-        <StatCard title="Total Courses" value={totalCourses} subtitle="available programs" accent="mint" />
-        <StatCard title="Completions" value={totalCompletions} subtitle="across all categories" accent="purple" />
+      {/* Stat cards */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 max-sm:grid-cols-1">
+        <StatCard icon="👥" iconBg="bg-cyan-soft text-cyan-default" title="Students" value={stats.totalStudents} subtitle="registered learners" />
+        <StatCard icon="🛡️" iconBg="bg-purple-500/10 text-purple" title="Admins" value={stats.totalAdmins} subtitle="category admins" />
+        <StatCard icon="📚" iconBg="bg-green-soft text-green-default" title="Courses" value={stats.totalCourses} subtitle="across all categories" />
+        <StatCard icon="📝" iconBg="bg-yellow-500/10 text-yellow-300" title="Lessons" value={stats.totalLessons} subtitle="learning modules" />
+        <StatCard icon="🎓" iconBg="bg-[rgba(56,215,255,0.12)] text-cyan-default" title="Enrollments" value={totalEnrollments} subtitle="all time" />
+        <StatCard icon="🎯" iconBg="bg-pink-500/10 text-pink-300" title="Completion rate" value={`${stats.completionRate || 0}%`} subtitle="of all enrollments" />
       </div>
 
-      <div className="analytics-grid grid gap-5 lg:grid-cols-2">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 chart-panel">
-          <div className="card-top flex justify-between items-start gap-4">
-            <div className="info-block flex flex-col gap-1">
-              <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Performance</p>
-              <h3>Completion overview</h3>
-            </div>
-            <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">{totalCompletions} total</span>
+      {/* Analytics row 1: status donut + completions per category bars */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-bold m-0 text-base">Enrollment status</h3>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">{totalEnrollments} total</span>
           </div>
 
-          <div className="donut-layout flex items-center gap-8 flex-wrap">
-            <div
-              className="donut-chart w-40 h-40 rounded-full relative grid place-items-center"
-              style={{
-                background: `conic-gradient(${donutBackground})`,
-              }}
-            >
-              <div className="donut-center w-24 h-24 rounded-full bg-[#0a1524] grid place-items-center">
-                <strong>{totalCompletions}</strong>
-                <span>completed</span>
+          {totalEnrollments === 0 ? (
+            <p className="text-sm text-muted text-center py-8 m-0">No enrollments yet.</p>
+          ) : (
+            <div className="flex items-center gap-8 flex-wrap">
+              <div className="w-40 h-40 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(${donutBackground})` }}>
+                <div className="w-24 h-24 rounded-full bg-[#0a1524] grid place-items-center leading-tight text-center">
+                  <strong className="text-2xl font-extrabold block">{stats.completionRate || 0}%</strong>
+                  <span className="text-[10px] uppercase tracking-wider text-muted">completed</span>
+                </div>
               </div>
-            </div>
-
-            <ul className="chart-legend list-none m-0 p-0 flex flex-col gap-2 text-sm [&>li]:flex [&>li]:items-center [&>li]:gap-2.5">
-              {chartSegments.length > 0 ? (
-                chartSegments.map((segment, index) => (
-                  <li key={`${segment.name}-${index}`}>
-                    <span
-                      className="legend-dot w-3 h-3 rounded-full"
-                      style={{ background: segment.color }}
-                    />
-                    <span>{segment.name}</span>
-                    <strong>{segment.value}</strong>
+              <ul className="list-none m-0 p-0 flex flex-col gap-2.5 text-sm flex-1 min-w-[160px]">
+                {statusSegments.map((s) => (
+                  <li key={s.key} className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: STATUS_COLORS[s.key] }} />
+                    <span className="text-muted flex-1">{STATUS_LABELS[s.key]}</span>
+                    <strong>{s.value}</strong>
                   </li>
-                ))
-              ) : (
-                <li className="legend-empty text-muted text-sm">No completion data yet.</li>
-              )}
-            </ul>
-          </div>
-        </div>
-
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <div className="card-top flex justify-between items-start gap-4">
-            <div className="info-block flex flex-col gap-1">
-              <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Breakdown</p>
-              <h3>Category performance</h3>
+                ))}
+              </ul>
             </div>
-          </div>
+          )}
+        </section>
 
-          <div className="bar-list flex flex-col gap-4">
-            {completionsPerCategory.length > 0 ? (
-              completionsPerCategory.map((category, index) => {
-                const percent = maxCategoryValue
-                  ? (Number(category.completions || 0) / maxCategoryValue) * 100
-                  : 0
+        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-bold m-0 text-base">Completions per category</h3>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-soft text-cyan-default">{totalCompletions} total</span>
+          </div>
+          {completionsPerCategory.length === 0 ? (
+            <p className="text-sm text-muted text-center py-8 m-0">No categories yet.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {completionsPerCategory.map((c, i) => {
+                const max = Math.max(...completionsPerCategory.map((x) => Number(x.completions || 0)), 1)
+                const pct = Math.round((Number(c.completions || 0) / max) * 100)
+                const colors = ['#38d4ff', '#2dd4bf', '#8b5cf6', '#f59e0b', '#f472b6', '#a3e635']
                 return (
-                  <div key={category.category_id || index} className="bar-row flex flex-col gap-1.5">
-                    <div className="bar-row-top flex justify-between text-sm">
-                      <span>{category.name}</span>
-                      <strong>{category.completions}</strong>
+                  <div key={c.category_id || c.name} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-sm gap-3">
+                      <span className="truncate">{c.name}</span>
+                      <strong className="shrink-0">{c.completions}</strong>
                     </div>
-                    <div className="bar-track h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
-                      <div
-                        className="bar-fill h-full rounded-full transition-all duration-300"
-                        style={{
-                          width: `${percent}%`,
-                          background: chartPalette[index % chartPalette.length],
-                        }}
-                      />
+                    <div className="h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: colors[i % colors.length] }} />
                     </div>
                   </div>
                 )
-              })
-            ) : (
-              <p className="empty-mini text-sm text-muted">No category completion data available.</p>
-            )}
+              })}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Analytics row 2: students per category + recent signups */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-bold m-0 text-base">Students per category</h3>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 border border-purple/25 text-purple">{stats.totalStudents} students</span>
           </div>
-        </div>
+          {studentsPerCategory.length === 0 ? (
+            <p className="text-sm text-muted text-center py-8 m-0">No categories yet.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {studentsPerCategory.map((c) => {
+                const max = Math.max(...studentsPerCategory.map((x) => Number(x.students || 0)), 1)
+                const pct = Math.round((Number(c.students || 0) / max) * 100)
+                return (
+                  <div key={c.category_id || c.name} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-sm gap-3">
+                      <span className="truncate">{c.name}</span>
+                      <strong className="shrink-0">{c.students}</strong>
+                    </div>
+                    <div className="h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-default to-green-default transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+          <h3 className="font-bold m-0 text-base mb-4">Recent signups</h3>
+          {(stats.recentStudents || []).length === 0 ? (
+            <p className="text-sm text-muted text-center py-8 m-0">No students yet.</p>
+          ) : (
+            <ul className="list-none m-0 p-0 flex flex-col divide-y divide-[rgba(143,170,205,0.08)]">
+              {stats.recentStudents.map((s) => (
+                <li key={s.id} className="flex items-center gap-3 py-2.5">
+                  <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-cyan-default to-purple text-[#02131f] font-black grid place-items-center text-sm">
+                    {(s.name || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium block truncate">{s.name}</span>
+                    <span className="text-xs text-muted block truncate">{s.category || 'Uncategorized'} · joined {fmtDate(s.joined_at)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      {/* Content totals strip */}
+      <div className="grid gap-4 grid-cols-3">
+        {[['📢 Posts published', stats.totalPosts], ['🛡️ Categories', completionsPerCategory.length], ['🎓 Completions', totalCompletions]].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.6)] px-4 py-3.5 flex items-center justify-between">
+            <span className="text-sm text-muted">{label}</span>
+            <strong className="text-lg">{value}</strong>
+          </div>
+        ))}
       </div>
     </div>
   )
