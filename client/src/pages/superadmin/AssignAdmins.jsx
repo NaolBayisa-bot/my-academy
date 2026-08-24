@@ -220,7 +220,7 @@ function AssignAdmins() {
       )}
 
       {/* Categories Grid */}
-      <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
+      <div className="flex flex-col gap-5">
         {categories.map((category) => {
           const admin = category.admin
           const busy = assigningId === category.id
