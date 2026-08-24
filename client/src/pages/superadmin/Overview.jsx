@@ -15,12 +15,12 @@ const chartPalette = ['#38d4ff', '#2dd4bf', '#8b5cf6', '#f59e0b', '#f472b6', '#a
 function StatCard({ title, value, subtitle, accent = 'cyan' }) {
   return (
     <div className={`stat-card stat-card-${accent}`}>
-      <div className="stat-topline">
-        <span className="stat-label">{title}</span>
-        <span className="stat-pill">Live</span>
+      <div className="stat-topline flex justify-between items-center">
+        <span className="stat-label text-xs uppercase tracking-wider text-muted font-semibold">{title}</span>
+        <span className="stat-pill text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-soft text-cyan-default">Live</span>
       </div>
-      <div className="stat-value">{value}</div>
-      {subtitle && <p className="stat-subtitle">{subtitle}</p>}
+      <div className="stat-value text-3xl font-extrabold tracking-tight">{value}</div>
+      {subtitle && <p className="stat-subtitle text-xs text-muted m-0">{subtitle}</p>}
     </div>
   )
 }
@@ -55,8 +55,8 @@ function Overview() {
 
   if (loading) {
     return (
-      <div className="content-page">
-        <div className="section-shell">
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
           <p>Loading overview...</p>
         </div>
       </div>
@@ -65,8 +65,8 @@ function Overview() {
 
   if (error) {
     return (
-      <div className="content-page">
-        <div className="section-shell error-panel">
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
           <p>{error}</p>
         </div>
       </div>
@@ -115,49 +115,49 @@ function Overview() {
   )
 
   return (
-    <div className="content-page">
-      <div className="page-header">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <div className="page-header mb-6">
         <div>
-          <p className="eyebrow">Executive summary</p>
-          <h1 className="page-title">Overview</h1>
+          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Executive summary</p>
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Overview</h1>
         </div>
       </div>
 
-      <div className="stats-grid">
+      <div className="stats-grid grid gap-4 sm:grid-cols-3 mb-6">
         <StatCard title="Total Students" value={totalStudents} subtitle="active learners" accent="cyan" />
         <StatCard title="Total Courses" value={totalCourses} subtitle="available programs" accent="mint" />
         <StatCard title="Completions" value={totalCompletions} subtitle="across all categories" accent="purple" />
       </div>
 
-      <div className="analytics-grid">
-        <div className="section-shell chart-panel">
-          <div className="card-top">
-            <div className="info-block">
-              <p className="eyebrow">Performance</p>
+      <div className="analytics-grid grid gap-5 lg:grid-cols-2">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 chart-panel">
+          <div className="card-top flex justify-between items-start gap-4">
+            <div className="info-block flex flex-col gap-1">
+              <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Performance</p>
               <h3>Completion overview</h3>
             </div>
-            <span className="chip success">{totalCompletions} total</span>
+            <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">{totalCompletions} total</span>
           </div>
 
-          <div className="donut-layout">
+          <div className="donut-layout flex items-center gap-8 flex-wrap">
             <div
-              className="donut-chart"
+              className="donut-chart w-40 h-40 rounded-full relative grid place-items-center"
               style={{
                 background: `conic-gradient(${donutBackground})`,
               }}
             >
-              <div className="donut-center">
+              <div className="donut-center w-24 h-24 rounded-full bg-[#0a1524] grid place-items-center">
                 <strong>{totalCompletions}</strong>
                 <span>completed</span>
               </div>
             </div>
 
-            <ul className="chart-legend">
+            <ul className="chart-legend list-none m-0 p-0 flex flex-col gap-2 text-sm [&>li]:flex [&>li]:items-center [&>li]:gap-2.5">
               {chartSegments.length > 0 ? (
                 chartSegments.map((segment, index) => (
                   <li key={`${segment.name}-${index}`}>
                     <span
-                      className="legend-dot"
+                      className="legend-dot w-3 h-3 rounded-full"
                       style={{ background: segment.color }}
                     />
                     <span>{segment.name}</span>
@@ -165,35 +165,35 @@ function Overview() {
                   </li>
                 ))
               ) : (
-                <li className="legend-empty">No completion data yet.</li>
+                <li className="legend-empty text-muted text-sm">No completion data yet.</li>
               )}
             </ul>
           </div>
         </div>
 
-        <div className="section-shell">
-          <div className="card-top">
-            <div className="info-block">
-              <p className="eyebrow">Breakdown</p>
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+          <div className="card-top flex justify-between items-start gap-4">
+            <div className="info-block flex flex-col gap-1">
+              <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Breakdown</p>
               <h3>Category performance</h3>
             </div>
           </div>
 
-          <div className="bar-list">
+          <div className="bar-list flex flex-col gap-4">
             {completionsPerCategory.length > 0 ? (
               completionsPerCategory.map((category, index) => {
                 const percent = maxCategoryValue
                   ? (Number(category.completions || 0) / maxCategoryValue) * 100
                   : 0
                 return (
-                  <div key={category.category_id || index} className="bar-row">
-                    <div className="bar-row-top">
+                  <div key={category.category_id || index} className="bar-row flex flex-col gap-1.5">
+                    <div className="bar-row-top flex justify-between text-sm">
                       <span>{category.name}</span>
                       <strong>{category.completions}</strong>
                     </div>
-                    <div className="bar-track">
+                    <div className="bar-track h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
                       <div
-                        className="bar-fill"
+                        className="bar-fill h-full rounded-full transition-all duration-300"
                         style={{
                           width: `${percent}%`,
                           background: chartPalette[index % chartPalette.length],
@@ -204,7 +204,7 @@ function Overview() {
                 )
               })
             ) : (
-              <p className="empty-mini">No category completion data available.</p>
+              <p className="empty-mini text-sm text-muted">No category completion data available.</p>
             )}
           </div>
         </div>

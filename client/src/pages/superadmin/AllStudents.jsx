@@ -148,13 +148,13 @@ function AllStudents() {
       </div>
 
       {students.map((student) => (
-        <article key={student.id} className="student-row">
+        <article key={student.id} className="student-row flex items-center justify-between gap-4 py-3 border-b border-[rgba(143,170,205,0.08)]">
           <div className="student-name-block">
-            <div className="avatar">{student.name?.charAt(0)?.toUpperCase() || 'S'}</div>
+            <div className="avatar w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-cyan-default to-purple font-black text-[#02131f] grid place-items-center text-sm">{student.name?.charAt(0)?.toUpperCase() || 'S'}</div>
             <div>
               <strong>{student.name}</strong>
               {student.suspended && (
-                <span className="chip error" style={{ marginLeft: '8px' }}>
+                <span className="chip alert inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 border border-red-500/25 text-red-300 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 border border-red-500/25 text-red-300" style={{ marginLeft: '8px' }}>
                   Suspended
                 </span>
               )}
@@ -166,10 +166,10 @@ function AllStudents() {
 
           <span
             className={`status-inline ${student.currentEnrollment?.status === 'active' || student.currentEnrollment?.status === 'approved'
-                ? 'live'
-                : student.currentEnrollment?.status
-                  ? 'pending'
-                  : 'neutral'
+              ? 'live'
+              : student.currentEnrollment?.status
+                ? 'pending'
+                : 'neutral'
               }`}
           >
             {student.currentEnrollment?.status || 'No enrollment'}
@@ -180,32 +180,32 @@ function AllStudents() {
               {student.suspended ? (
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   onClick={() => handleUnsuspend(student.id, student.name)}
                   disabled={actionLoading}
                   title="Unsuspend student"
                 >
-                  ✓
+                  Unsusp
                 </button>
               ) : (
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   onClick={() => handleSuspend(student.id, student.name)}
                   disabled={actionLoading}
                   title="Suspend student"
                 >
-                  ⸍
+                  Susp
                 </button>
               )}
               <button
                 type="button"
-                className="danger-btn"
+                className="danger-btn inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-5 py-2.5 rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 onClick={() => confirmDelete(student)}
                 disabled={actionLoading}
                 title="Delete student"
               >
-                ✕
+                Del
               </button>
             </div>
           )}
@@ -219,23 +219,23 @@ function AllStudents() {
   }
 
   if (error) {
-    return <p className="form-error">{error}</p>
+    return <p className="form-error text-red-400 text-sm m-0">{error}</p>
   }
 
   // Delete confirmation modal
   const renderDeleteModal = () => {
     if (!studentToDelete) return null
     return (
-      <div className="modal-overlay" onClick={cancelDelete}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer" onClick={cancelDelete}>
+        <div className="modal bg-[rgba(13,22,35,0.98)] border border-[rgba(143,170,205,0.18)] rounded-2xl p-6 max-w-md w-full cursor-default animate-pop-in" onClick={(e) => e.stopPropagation()}>
           <h3>Confirm Deletion</h3>
           <p>Are you sure you want to permanently delete "<strong>{studentToDelete.name}</strong>"?</p>
           <p>This will remove the student and all their enrollments, progress, and related data.</p>
-          <div className="modal-actions">
-            <button className="secondary-btn" onClick={cancelDelete} disabled={actionLoading}>
+          <div className="modal-actions flex justify-end gap-3 mt-5">
+            <button className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" onClick={cancelDelete} disabled={actionLoading}>
               Cancel
             </button>
-            <button className="danger-btn" onClick={() => handleDelete(studentToDelete.id, studentToDelete.name)} disabled={actionLoading}>
+            <button className="danger-btn inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-5 py-2.5 rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" onClick={() => handleDelete(studentToDelete.id, studentToDelete.name)} disabled={actionLoading}>
               {actionLoading ? 'Deleting...' : 'Delete Student'}
             </button>
           </div>
@@ -245,11 +245,11 @@ function AllStudents() {
   }
 
   return (
-    <div className="content-page">
-      <div className="page-header">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">{isSuperAdmin ? 'All Students' : 'My Students'}</h1>
-          <p className="page-subtitle">
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">{isSuperAdmin ? 'All Students' : 'My Students'}</h1>
+          <p className="page-subtitle text-sm text-muted mt-1.5">
             {isSuperAdmin
               ? 'Review all learners, manage suspensions, and delete inactive accounts.'
               : 'Review active learners and their course progress at a glance.'
@@ -258,19 +258,19 @@ function AllStudents() {
         </div>
       </div>
 
-      {error && <p className="form-error">{error}</p>}
-      {success && <p className="success-message">{success}</p>}
+      {error && <p className="form-error text-red-400 text-sm m-0">{error}</p>}
+      {success && <p className="success-message text-green-default text-sm">{success}</p>}
 
       {visibleCategories.map((category) => {
         const students = studentsByCategory[category.id] || []
         return (
-          <section key={category.id} className="section-shell">
-            <div className="card-top" style={{ marginBottom: '16px' }}>
+          <section key={category.id} className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+            <div className="card-top flex justify-between items-start gap-4" style={{ marginBottom: '16px' }}>
               <h3>{category.name}</h3>
-              <span className="chip neutral">{students.length} students</span>
+              <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">{students.length} students</span>
             </div>
             {students.length === 0 ? (
-              <p className="page-subtitle">No students in this category yet.</p>
+              <p className="page-subtitle text-sm text-muted mt-1.5">No students in this category yet.</p>
             ) : (
               renderStudentList(students)
             )}
@@ -279,10 +279,10 @@ function AllStudents() {
       })}
 
       {uncategorized.length > 0 && (
-        <section key={NULL_CATEGORY_ID} className="section-shell">
-          <div className="card-top" style={{ marginBottom: '16px' }}>
+        <section key={NULL_CATEGORY_ID} className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+          <div className="card-top flex justify-between items-start gap-4" style={{ marginBottom: '16px' }}>
             <h3>Uncategorized</h3>
-            <span className="chip neutral">{uncategorized.length} students</span>
+            <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">{uncategorized.length} students</span>
           </div>
           {renderStudentList(uncategorized)}
         </section>

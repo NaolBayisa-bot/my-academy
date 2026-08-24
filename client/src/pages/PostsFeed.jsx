@@ -64,41 +64,50 @@ function PostsFeed() {
     })
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5">
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (error) {
-    return <p style={{ color: 'red' }}>{error}</p>
+    return <p className="text-red-400">{error}</p>
   }
 
   return (
-    <div className="content-page">
-      <div className="page-header">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <div className="page-header mb-6">
         <div>
-          <p className="eyebrow">Community</p>
-          <h1 className="page-title">Posts</h1>
+          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Community</p>
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Posts</h1>
         </div>
       </div>
 
       {posts.length === 0 ? (
-        <div className="section-shell empty-state">
+        <div className="section-shell empty-state rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 text-center py-10">
           <p>No posts yet.</p>
         </div>
       ) : (
-        <div className="card-grid single-column-grid">
+        <div className="card-grid single-column-grid grid gap-5 grid-cols-1">
           {posts.map((post) => (
-            <article key={post.id} className="list-card post-card">
-              <div className="card-top">
-                <div className="info-block">
-                  <p className="eyebrow">{categoryLabel(post)}</p>
-                  <h3>{post.title}</h3>
+            <article
+              key={post.id}
+              className="list-card post-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30"
+            >
+              <div className="card-top flex justify-between items-start gap-4">
+                <div className="info-block flex flex-col gap-1">
+                  <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0">{categoryLabel(post)}</p>
+                  <h3 className="font-bold text-base m-0">{post.title}</h3>
                 </div>
-                <span className="chip neutral">New</span>
+                <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">New</span>
               </div>
 
-              <p className="post-body">{post.content}</p>
+              <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">{post.content}</p>
 
-              <div className="meta-row">
+              <div className="meta-row flex flex-wrap gap-3 text-xs text-muted pt-3 border-t border-[rgba(143,170,205,0.1)]">
                 <span>{post.author?.name || 'Unknown author'}</span>
                 <span>•</span>
                 <span>{formatDate(post.created_at)}</span>

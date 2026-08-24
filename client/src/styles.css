@@ -1,0 +1,38 @@
+/* Additional styles beyond Tailwind utilities (plain CSS — no @apply,
+   so it works regardless of the PostCSS pipeline). */
+
+/* Page shell with grid background */
+.page-shell {
+  min-height: 100vh;
+  position: relative;
+  background-image:
+    linear-gradient(rgba(80, 111, 148, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 111, 148, 0.1) 1px, transparent 1px);
+  background-size: 36px 36px;
+  background-position: center center;
+}
+
+.page-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 5%, rgba(73, 216, 255, 0.16), transparent 20%);
+  pointer-events: none;
+}
+
+/* Category accent gradients */
+.cyber-gradient {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(13, 22, 35, 0.9) 45%);
+}
+
+.dev-gradient {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(13, 22, 35, 0.9) 45%);
+}
+
+.net-gradient {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(13, 22, 35, 0.9) 45%);
+}
+
+.creative-gradient {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(13, 22, 35, 0.9) 45%);
+}

@@ -122,22 +122,22 @@ function ManageCourses() {
   }
 
   return (
-    <div className="content-page">
-      <div className="page-header">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">Manage Courses</h1>
-          <p className="page-subtitle">Create, edit, and organize the learning material for your category.</p>
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Manage Courses</h1>
+          <p className="page-subtitle text-sm text-muted mt-1.5">Create, edit, and organize the learning material for your category.</p>
         </div>
-        <button type="button" className="primary-btn" onClick={() => setShowAdd((v) => !v)}>
+        <button type="button" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" onClick={() => setShowAdd((v) => !v)}>
           {showAdd ? 'Cancel' : 'Add Course'}
         </button>
       </div>
 
-      {error && <p className="form-error">{error}</p>}
+      {error && <p className="form-error text-red-400 text-sm m-0">{error}</p>}
 
       {showAdd && (
-        <form onSubmit={handleAdd} className="section-shell form-grid">
-          <div className="field">
+        <form onSubmit={handleAdd} className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 form-grid grid gap-4 sm:grid-cols-2">
+          <div className="field flex flex-col gap-1.5">
             <label htmlFor="course-title">Title</label>
             <input
               id="course-title"
@@ -149,7 +149,7 @@ function ManageCourses() {
             />
           </div>
 
-          <div className="field">
+          <div className="field flex flex-col gap-1.5">
             <label htmlFor="course-description">Description</label>
             <textarea
               id="course-description"
@@ -160,42 +160,42 @@ function ManageCourses() {
             />
           </div>
 
-          <button type="submit" className="primary-btn" disabled={submitting}>
+          <button type="submit" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" disabled={submitting}>
             {submitting ? 'Saving...' : 'Save Course'}
           </button>
         </form>
       )}
 
-      {courses.length === 0 && !loading && <div className="section-shell"><p className="page-subtitle">No courses in your category yet.</p></div>}
+      {courses.length === 0 && !loading && <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6"><p className="page-subtitle text-sm text-muted mt-1.5">No courses in your category yet.</p></div>}
 
-      <div className="card-grid">
+      <div className="card-grid grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {courses.map((course) => (
-          <article key={course.id} className="list-card">
-            <div className="card-top">
+          <article key={course.id} className="list-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
+            <div className="card-top flex justify-between items-start gap-4">
               <div>
-                <p className="eyebrow">Course</p>
+                <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Course</p>
                 <h3>{course.title}</h3>
               </div>
-              <span className="chip neutral">Active</span>
+              <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">Active</span>
             </div>
 
             <p>{course.description || 'No description.'}</p>
 
-            <div className="button-row">
-              <Link to={`/admin/courses/${course.id}`} state={{ course }} className="secondary-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
+              <Link to={`/admin/courses/${course.id}`} state={{ course }} className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 Lessons
               </Link>
-              <button type="button" className="secondary-btn" onClick={() => startEdit(course)} disabled={submitting}>
+              <button type="button" className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" onClick={() => startEdit(course)} disabled={submitting}>
                 Edit
               </button>
-              <button type="button" className="danger-btn" onClick={() => handleDelete(course.id)} disabled={submitting}>
+              <button type="button" className="danger-btn inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-5 py-2.5 rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" onClick={() => handleDelete(course.id)} disabled={submitting}>
                 Delete
               </button>
             </div>
 
             {editingId === course.id && (
-              <form onSubmit={(e) => handleUpdate(e, course.id)} className="form-grid">
-                <div className="field">
+              <form onSubmit={(e) => handleUpdate(e, course.id)} className="form-grid grid gap-4 sm:grid-cols-2">
+                <div className="field flex flex-col gap-1.5">
                   <label htmlFor={`edit-title-${course.id}`}>Title</label>
                   <input
                     id={`edit-title-${course.id}`}
@@ -206,7 +206,7 @@ function ManageCourses() {
                   />
                 </div>
 
-                <div className="field">
+                <div className="field flex flex-col gap-1.5">
                   <label htmlFor={`edit-description-${course.id}`}>Description</label>
                   <textarea
                     id={`edit-description-${course.id}`}
@@ -216,11 +216,11 @@ function ManageCourses() {
                   />
                 </div>
 
-                <div className="button-row">
-                  <button type="submit" className="primary-btn" disabled={submitting}>
+                <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
+                  <button type="submit" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" disabled={submitting}>
                     {submitting ? 'Saving...' : 'Save'}
                   </button>
-                  <button type="button" className="ghost-btn" onClick={cancelEdit} disabled={submitting}>
+                  <button type="button" className="ghost-btn inline-flex items-center justify-center no-underline text-muted hover:text-cyan-default px-4 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" onClick={cancelEdit} disabled={submitting}>
                     Cancel
                   </button>
                 </div>

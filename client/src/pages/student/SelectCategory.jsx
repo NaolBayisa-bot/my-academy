@@ -59,8 +59,8 @@ function SelectCategory() {
 
   if (loading) {
     return (
-      <div className="content-page">
-        <div className="section-shell">
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
           <p>Loading categories...</p>
         </div>
       </div>
@@ -68,35 +68,35 @@ function SelectCategory() {
   }
 
   return (
-    <div className="content-page">
-      <div className="page-header">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <div className="page-header mb-6">
         <div>
-          <p className="eyebrow">Start here</p>
-          <h1 className="page-title">Select Your Category</h1>
+          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Start here</p>
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Select Your Category</h1>
         </div>
       </div>
 
       {fetchError && (
-        <div className="section-shell error-panel">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
           <p>{fetchError}</p>
         </div>
       )}
       {selectError && (
-        <div className="section-shell error-panel">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
           <p>{selectError}</p>
         </div>
       )}
 
-      <div className="category-picker-grid">
+      <div className="category-picker-grid grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
         {categories.map((category) => (
           <button
             key={category.id}
             type="button"
-            className="category-choice"
+            className="category-choice flex items-center gap-3 rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] px-5 py-4 cursor-pointer transition-all duration-200 hover:border-cyan-default/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => handleSelect(category)}
             disabled={selectingId === category.id}
           >
-            <span className="category-choice-icon">◈</span>
+            <span className="category-choice category-choice-icon text-cyan-default text-lg">◈</span>
             <span>{selectingId === category.id ? 'Selecting...' : category.name}</span>
           </button>
         ))}

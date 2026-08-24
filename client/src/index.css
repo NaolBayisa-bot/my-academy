@@ -1,9 +1,179 @@
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* Custom base styles */
+@layer base {
+  :root {
+    --bg: #020b17;
+    --bg-2: #050f1d;
+    --panel: rgba(12, 21, 34, 0.86);
+    --panel-strong: rgba(13, 22, 35, 0.96);
+    --panel-soft: rgba(18, 30, 46, 0.88);
+    --line: rgba(112, 150, 190, 0.18);
+    --line-strong: rgba(123, 200, 255, 0.25);
+    --text: #eaf6ff;
+    --muted: #95a9bc;
+    --cyan: #38d7ff;
+    --cyan-strong: #15c3f2;
+    --cyan-soft: rgba(56, 215, 255, 0.18);
+    --green: #2dd4a7;
+    --green-soft: rgba(45, 212, 167, 0.18);
+    --purple: #9c7bff;
+    --pink: #f170d9;
+    --blue: #66b6ff;
+    --shadow: rgba(13, 190, 255, 0.18);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      linear-gradient(rgba(5, 13, 22, 0.9), rgba(5, 13, 22, 0.92)),
+      radial-gradient(circle at top, rgba(10, 192, 255, 0.2), transparent 30%),
+      #020b17;
+    color: var(--text);
+    font-family: Inter, 'Segoe UI', sans-serif;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  img {
+    max-width: 100%;
+    display: block;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
 }
 
-body {
-  margin: 0;
+/* Custom animations layer */
+@layer utilities {
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes floatGlow {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+      opacity: 0.7;
+    }
+
+    50% {
+      transform: translateY(-10px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulseSoft {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 rgba(56, 215, 255, 0.15);
+    }
+
+    50% {
+      box-shadow: 0 0 24px rgba(56, 215, 255, 0.18);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes floating {
+
+    0%,
+    100% {
+      transform: translateY(0) rotateX(0deg);
+    }
+
+    50% {
+      transform: translateY(-8px) rotateX(1deg);
+    }
+  }
+
+  @keyframes popIn {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+
+    70% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.7s ease both;
+  }
+
+  .animate-float-glow {
+    animation: floatGlow 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulseSoft 2.8s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  .animate-floating {
+    animation: floating 6s ease-in-out infinite;
+  }
+
+  .animate-pop-in {
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
 }

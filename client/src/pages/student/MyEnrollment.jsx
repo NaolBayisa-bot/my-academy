@@ -66,8 +66,8 @@ function MyEnrollment() {
 
   if (loading) {
     return (
-      <div className="content-page">
-        <div className="section-shell">
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
           <p>Loading...</p>
         </div>
       </div>
@@ -76,17 +76,17 @@ function MyEnrollment() {
 
   if (!enrollment) {
     return (
-      <div className="content-page">
-        <div className="page-header">
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="page-header mb-6">
           <div>
-            <p className="eyebrow">Learning progress</p>
-            <h1 className="page-title">My Enrollment</h1>
+            <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
+            <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My Enrollment</h1>
           </div>
         </div>
 
-        <div className="section-shell empty-state">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 empty-state text-center py-10">
           <p>You don't have an active enrollment yet.</p>
-          <Link to="/student/browse" className="primary-btn link-button">
+          <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
             Browse Courses
           </Link>
         </div>
@@ -98,47 +98,47 @@ function MyEnrollment() {
   const status = enrollment.status
 
   return (
-    <div className="content-page">
-      <div className="page-header">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <div className="page-header mb-6">
         <div>
-          <p className="eyebrow">Learning progress</p>
-          <h1 className="page-title">My Enrollment</h1>
+          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My Enrollment</h1>
         </div>
       </div>
 
       {error && (
-        <div className="section-shell error-panel">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
           <p>{error}</p>
         </div>
       )}
 
       {status === 'pending' && (
-        <div className="section-shell notice-panel">
-          <div className="card-top">
-            <div className="info-block">
-              <span className="muted-label">Waiting for approval</span>
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 notice-panel border-cyan-default/30 bg-[rgba(56,215,255,0.06)]">
+          <div className="card-top flex justify-between items-start gap-4">
+            <div className="info-block flex flex-col gap-1">
+              <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Waiting for approval</span>
               <h3>{course.title}</h3>
             </div>
-            <span className="chip neutral">Pending</span>
+            <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">Pending</span>
           </div>
-          <p className="post-body">
+          <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">
             Your enrollment request is under review. We’ll update your access as soon as an admin approves it.
           </p>
         </div>
       )}
 
       {status === 'completed' && (
-        <div className="section-shell success-panel">
-          <div className="card-top">
-            <div className="info-block">
-              <span className="muted-label">Course completed</span>
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 success-panel border-green-500/30 bg-[rgba(45,212,167,0.08)]">
+          <div className="card-top flex justify-between items-start gap-4">
+            <div className="info-block flex flex-col gap-1">
+              <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Course completed</span>
               <h3>{course.title}</h3>
             </div>
-            <span className="chip success">Completed</span>
+            <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">Completed</span>
           </div>
-          <p className="post-body">🎉 Congratulations! You completed the course.</p>
-          <div className="button-row">
-            <Link to="/student/browse" className="primary-btn link-button">
+          <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">🎉 Congratulations! You completed the course.</p>
+          <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
+            <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
               Explore more courses
             </Link>
           </div>
@@ -146,48 +146,48 @@ function MyEnrollment() {
       )}
 
       {status === 'in_progress' && (
-        <div className="card-grid">
-          <article className="list-card">
-            <div className="card-top">
-              <div className="info-block">
-                <p className="eyebrow">Active course</p>
+        <div className="card-grid grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <article className="list-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
+            <div className="card-top flex justify-between items-start gap-4">
+              <div className="info-block flex flex-col gap-1">
+                <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Active course</p>
                 <h3>{course.title}</h3>
               </div>
-              <span className="chip success">In progress</span>
+              <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">In progress</span>
             </div>
 
-            <div className="info-block">
-              <span className="muted-label">Progress</span>
+            <div className="info-block flex flex-col gap-1">
+              <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Progress</span>
               <p>
                 {progress?.completedCount ?? 0} of {progress?.totalLessons ?? 0}{' '}
                 lessons completed
               </p>
             </div>
 
-            <div className="progress-track">
+            <div className="progress-track h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
               <div
-                className="progress-bar"
+                className="progress-bar h-full rounded-full bg-gradient-to-r from-cyan-default to-green-default transition-all duration-300"
                 style={{ width: `${progress?.percentage ?? 0}%` }}
               />
             </div>
           </article>
 
-          <div className="section-shell lesson-panel">
-            <div className="card-top">
-              <div className="info-block">
-                <p className="eyebrow">Course content</p>
+          <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 lesson-panel">
+            <div className="card-top flex justify-between items-start gap-4">
+              <div className="info-block flex flex-col gap-1">
+                <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Course content</p>
                 <h3>Lessons</h3>
               </div>
             </div>
 
-            <div className="lesson-list">
+            <div className="lesson-list flex flex-col gap-2.5">
               {lessons?.map((lesson) => {
                 const isCompleted = (progress?.completedLessonIds || []).includes(
                   lesson.id
                 )
                 return (
-                  <div key={lesson.id} className="lesson-item">
-                    <label className="lesson-toggle">
+                  <div key={lesson.id} className="lesson-item flex items-center justify-between gap-4 rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] px-4 py-3">
+                    <label className="lesson-toggle flex items-center gap-2.5 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isCompleted}
@@ -203,7 +203,7 @@ function MyEnrollment() {
                       href={lesson.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="secondary-btn lesson-link"
+                      className="secondary-btn lesson-link inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Open
                     </a>

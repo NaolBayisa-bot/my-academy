@@ -175,9 +175,9 @@ function AssignAdmins() {
   // Loading state
   if (loading) {
     return (
-      <div className="content-page">
-        <div className="section-shell">
-          <div className="loading-center">Loading categories...</div>
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+          <div className="text-muted text-sm text-center py-6">Loading categories...</div>
         </div>
       </div>
     )
@@ -186,40 +186,41 @@ function AssignAdmins() {
   // Error state (when no categories loaded)
   if (error && categories.length === 0) {
     return (
-      <div className="content-page">
-        <div className="section-shell">
-          <p className="form-error">{error}</p>
+      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+          <p className="form-error text-red-400 text-sm m-0">{error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="content-page">
+    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
       {/* Page Header */}
-      <div className="page-header">
+      <div className="page-header mb-6">
         <div>
-          <h1 className="page-title">Assign Category Admins</h1>
-          <p className="page-subtitle">
-            Promote students to category administrators. Only super admins can perform this action.
+          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Access control</p>
+          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Assign Category Admins</h1>
+          <p className="page-subtitle text-sm text-muted mt-1.5 m-0">
+            Promote students to category administrators.
           </p>
         </div>
       </div>
 
       {/* Messages */}
       {error && (
-        <div className="form-error" style={{ marginBottom: '16px' }}>
+        <div className="form-error text-red-400 text-sm m-0 mb-4 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2">
           {error}
         </div>
       )}
       {success && (
-        <div className="success-message" style={{ marginBottom: '16px' }}>
+        <div className="success-message text-green-default text-sm m-0 mb-4 rounded-lg border border-green-500/25 bg-green-500/10 px-3 py-2">
           {success}
         </div>
       )}
 
       {/* Categories Grid */}
-      <div className="category-admin-grid">
+      <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
         {categories.map((category) => {
           const admin = category.admin
           const busy = assigningId === category.id
@@ -227,60 +228,66 @@ function AssignAdmins() {
           const selected = selectedByCat[category.id] || ''
 
           return (
-            <article key={category.id} className="admin-category-card">
+            <article
+              key={category.id}
+              className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-4 transition-colors duration-200 hover:border-cyan-default/25"
+            >
               {/* Category Header */}
-              <div className="card-header">
-                <div className="category-info">
-                  <p className="eyebrow">Category</p>
-                  <h3 className="category-name">{category.name}</h3>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0">Category</p>
+                  <h3 className="text-lg font-bold m-0">{category.name}</h3>
                 </div>
-                <span className={`chip ${admin ? 'success' : 'neutral'}`}>
-                  {admin ? 'Assigned' : 'Unassigned'}
-                </span>
+                {admin ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default shrink-0">
+                    Assigned
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted shrink-0">
+                    Unassigned
+                  </span>
+                )}
               </div>
 
               {/* Current Admin Section */}
-              <div className="admin-section">
-                <div className="info-block">
-                  <span className="muted-label">Current admin</span>
-                  <p className="current-admin-text">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[rgba(143,170,205,0.1)] bg-[rgba(9,17,27,0.5)] px-4 py-3">
+                <div className="info-block flex flex-col gap-1 min-w-0">
+                  <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Current admin</span>
+                  <p className={`m-0 text-sm truncate ${admin ? 'font-medium' : 'text-muted italic'}`}>
                     {adminLabel(admin)}
                   </p>
                 </div>
 
                 {/* Remove Admin Button */}
                 {admin && (
-                  <div className="admin-actions">
-                    <span className="admin-badge">{admin.name}</span>
-                    <button
-                      type="button"
-                      className="danger-btn small"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Remove ${admin.name} as admin of "${category.name}"?`
-                          )
-                        ) {
-                          handleDeassign(category)
-                        }
-                      }}
-                      disabled={busy}
-                      title="Remove admin"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="danger-btn small shrink-0 inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-3.5 py-2 text-sm rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Remove ${admin.name} as admin of "${category.name}"?`
+                        )
+                      ) {
+                        handleDeassign(category)
+                      }
+                    }}
+                    disabled={busy}
+                    title="Remove admin"
+                  >
+                    Remove
+                  </button>
                 )}
               </div>
 
               {/* Assign New Admin Section */}
-              <div className="form-section">
-                <h4 className="form-section-title">Assign new admin</h4>
+              <div className="pt-4 border-t border-[rgba(143,170,205,0.1)] mt-auto flex flex-col gap-3">
+                <h4 className="text-xs font-semibold text-muted uppercase tracking-wider m-0">Assign new admin</h4>
 
-                <div className="form-grid">
+                <div className="grid gap-4">
                   {/* Search Input */}
-                  <div className="field">
-                    <label htmlFor={`search-${category.id}`}>Search</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium" htmlFor={`search-${category.id}`}>Search</label>
                     <input
                       id={`search-${category.id}`}
                       type="search"
@@ -288,17 +295,19 @@ function AssignAdmins() {
                       value={searchByCat[category.id] || ''}
                       onChange={(e) => setSearch(category.id, e.target.value)}
                       disabled={busy || candidatesLoading}
+                      className="w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
 
                   {/* Student Selector */}
-                  <div className="field">
-                    <label htmlFor={`select-${category.id}`}>Available users</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium" htmlFor={`select-${category.id}`}>Available users</label>
                     <select
                       id={`select-${category.id}`}
                       value={selected}
                       onChange={(e) => setSelected(category.id, e.target.value)}
                       disabled={busy || studentsForCategory.length === 0 || candidatesLoading}
+                      className="field-select w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed [&>option]:bg-[#0d1623]"
                     >
                       <option value="" disabled>
                         {studentsForCategory.length === 0
@@ -315,10 +324,10 @@ function AssignAdmins() {
                   </div>
 
                   {/* Assign Button */}
-                  <div className="button-row">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <button
                       type="button"
-                      className="primary-btn"
+                      className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
                       onClick={() => handleAssign(category)}
                       disabled={busy || !selected || studentsForCategory.length === 0 || candidatesLoading}
                     >
@@ -329,7 +338,7 @@ function AssignAdmins() {
 
                 {/* Empty State */}
                 {!candidatesLoading && studentsForCategory.length === 0 && (
-                  <p className="muted-copy">
+                  <p className="muted-copy text-sm text-muted m-0">
                     No students available in this category.
                   </p>
                 )}
@@ -341,8 +350,8 @@ function AssignAdmins() {
 
       {/* No Categories State */}
       {categories.length === 0 && !error && (
-        <div className="section-shell">
-          <p className="page-subtitle">No categories found.</p>
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+          <p className="page-subtitle text-sm text-muted mt-1.5">No categories found.</p>
         </div>
       )}
     </div>
