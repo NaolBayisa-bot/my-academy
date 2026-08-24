@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../utils/dashboardPath'
+import Footer from './Footer'
 
 const NAV_LINKS = {
   student: [
@@ -32,12 +33,14 @@ function Layout({ children }) {
   const links = NAV_LINKS[user?.role] || []
 
   return (
-    // Whole page: vertical stack — top navbar row, then content row.
-    <div className="page-shell min-h-screen flex flex-col">
-      {/* ── Persistent full-width top navbar ────────────────────────────
-          Lives OUTSIDE the sidebar container entirely, so sidebar
-          collapse/expand never shifts or resizes it. */}
-      <header className="top-navbar h-16 shrink-0 w-full flex items-center justify-between gap-4 px-4 md:px-6 border-b border-[rgba(148,175,211,0.15)] bg-[rgba(5,15,29,0.92)] backdrop-blur-sm z-20">
+    // Whole page: vertical stack — fixed top navbar row, then content row.
+    <div className="page-shell min-h-screen flex flex-col pt-16">
+      {/* ── Fixed full-width top navbar ─────────────────────────────────
+          Pinned to the top of the viewport so it stays visible while
+          scrolling. Lives OUTSIDE the sidebar container entirely, so
+          sidebar collapse/expand never shifts or resizes it.
+          pt-16 on the page shell reserves its (h-16) space below it. */}
+      <header className="top-navbar fixed top-0 left-0 h-16 shrink-0 w-full flex items-center justify-between gap-4 px-4 md:px-6 border-b border-[rgba(148,175,211,0.15)] bg-[rgba(5,15,29,0.92)] backdrop-blur-sm z-20">
         {/* Left: sidebar toggle + branding */}
         <div className="flex items-center gap-3">
           <button
@@ -78,10 +81,11 @@ function Layout({ children }) {
 
       {/* ── Content row: independent sidebar + main area ──────────────── */}
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar sits BELOW the navbar as an independent column.
+        {/* Sidebar sits BELOW the navbar as an independent column and is
+            sticky, so it stays in view while the main content scrolls.
             Only its width transitions — the navbar above is untouched. */}
         <aside
-          className={`dashboard-sidebar shrink-0 flex flex-col border-r border-[rgba(143,170,205,0.16)] bg-[rgba(5,15,29,0.9)] transition-[width] duration-300 ease-in-out overflow-hidden ${
+          className={`dashboard-sidebar sticky top-16 self-start h-[calc(100vh-4rem)] shrink-0 flex flex-col border-r border-[rgba(143,170,205,0.16)] bg-[rgba(5,15,29,0.9)] transition-[width] duration-300 ease-in-out overflow-hidden ${
             collapsed ? 'w-[72px]' : 'w-[240px]'
           }`}
         >
@@ -105,8 +109,9 @@ function Layout({ children }) {
         </aside>
 
         {/* Main dashboard content */}
-        <div className="dashboard-main flex-1 p-6 md:p-8 overflow-x-hidden">
+        <div className="dashboard-main flex-1 p-6 md:p-8 overflow-x-hidden flex flex-col">
           <main className="dashboard-content">{children}</main>
+          <Footer className="mt-auto w-full" />
         </div>
       </div>
     </div>
