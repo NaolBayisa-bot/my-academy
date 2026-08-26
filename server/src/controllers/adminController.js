@@ -135,6 +135,7 @@ exports.getStudentsByCategory = async (req, res) => {
           include: [
             {
               model: Course,
+              as: 'course',
               attributes: ['id', 'title'],
             },
           ],
@@ -193,6 +194,7 @@ exports.getAllStudents = async (req, res) => {
           include: [
             {
               model: Course,
+              as: 'course',
               attributes: ['id', 'title'],
             },
           ],
@@ -627,7 +629,7 @@ exports.getCategoryStats = async (req, res) => {
           limit: 6,
           include: [
             { model: User, as: 'student', attributes: ['name', 'email'] },
-            { model: Course, attributes: ['title'] },
+            { model: Course, as: 'course', attributes: ['title'] },
           ],
         })
       : [];

@@ -1,4 +1,4 @@
-const { User, Category, Enrollment, Course, Lesson, LessonProgress } = require('../models');
+const { User, Category, Enrollment, Course, Module, Lesson, LessonProgress } = require('../models');
 
 // Strip sensitive fields from a user instance before sending it in a response.
 const serializeUser = (user) => {
@@ -116,7 +116,7 @@ exports.getMyEnrollment = async (req, res) => {
     const enrollment = await Enrollment.findOne({
       where: { student_id: student.id },
       // Stable include aliases so the response shape is predictable:
-      // enrollment.course.title, enrollment.course.lessons[],
+      // enrollment.course.title, enrollment.course.modules[].lessons[],
       // enrollment.lessonProgresses[].
       include: [
         {
@@ -125,9 +125,20 @@ exports.getMyEnrollment = async (req, res) => {
           attributes: ['id', 'title', 'description', 'category_id'],
           include: [
             {
-              model: Lesson,
-              as: 'lessons',
-              attributes: ['id', 'title', 'type', 'url', 'order_index'],
+              model: Module,
+              as: 'modules',
+              attributes: ['id', 'title', 'description', 'order_index'],
+              separate: true,
+              order: [['order_index', 'ASC']],
+              include: [
+                {
+                  model: Lesson,
+                  as: 'lessons',
+                  attributes: ['id', 'title', 'type', 'url', 'order_index'],
+                  separate: true,
+                  order: [['order_index', 'ASC']],
+                },
+              ],
             },
           ],
         },

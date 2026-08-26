@@ -1,18 +1,53 @@
-const { User, Course, Lesson } = require('../models');
+const { User, Course, Module, Lesson } = require('../models');
 
-// POST /api/courses/:courseId/lessons
-// Creates a lesson in a specific course. Protected by `authenticate` +
-// `authorize('super_admin', 'category_admin')`.
+// Shared helper: loads the current user and the course that owns the given
+// module, and enforces the same permission rules used across courses/lessons:
+//  - super_admin: can act on any course.
+//  - category_admin: can act only on courses in their own category.
+// Returns { currentUser, course } or sends an error response and returns null.
+async function authorizeModuleAccess(req, res, moduleId) {
+  const currentUser = await User.findByPk(req.user.id);
+  if (!currentUser) {
+    res.status(404).json({ error: 'User not found.' });
+    return null;
+  }
+
+  const module = await Module.findByPk(moduleId);
+  if (!module) {
+    res.status(404).json({ error: 'Module not found.' });
+    return null;
+  }
+
+  const course = await Course.findByPk(module.course_id);
+  if (!course) {
+    res.status(404).json({ error: 'Course not found.' });
+    return null;
+  }
+
+  if (
+    currentUser.role === 'category_admin' &&
+    currentUser.category_id !== course.category_id
+  ) {
+    res.status(403).json({
+      error:
+        'Category admin can only manage lessons for courses in their own category.',
+    });
+    return null;
+  }
+
+  return { currentUser, module, course };
+}
+
+// POST /api/courses/:courseId/modules/:moduleId/lessons
+// Creates a lesson inside a specific module of a specific course. Protected by
+// `authenticate` + `authorize('super_admin', 'category_admin')`.
 //
 // Permission rules:
-//  - super_admin: can create lessons for any course.
+//  - super_admin: can create lessons for any course/module.
 //  - category_admin: can create lessons only for courses whose
 //    `category_id` matches their own. A mismatch yields 403.
-//
-// The `course_id` is always taken from the URL (req.params.courseId),
-// never from the request body, to prevent spoofing.
 exports.createLesson = async (req, res, next) => {
-  const { courseId } = req.params;
+  const { courseId, moduleId } = req.params;
   const { title, type, url, order_index } = req.body;
 
   try {
@@ -42,8 +77,16 @@ exports.createLesson = async (req, res, next) => {
       });
     }
 
+    // Confirm the target module exists and belongs to this course.
+    const module = await Module.findByPk(moduleId);
+    if (!module || module.course_id !== courseId) {
+      return res
+        .status(404)
+        .json({ error: 'Module not found for this course.' });
+    }
+
     const lesson = await Lesson.create({
-      course_id: courseId,
+      module_id: moduleId,
       title,
       type,
       url,
@@ -63,8 +106,9 @@ exports.createLesson = async (req, res, next) => {
 };
 
 // GET /api/courses/:courseId/lessons
-// Lists lessons belonging to a course. Protected by `authenticate` +
-// `authorize('super_admin', 'category_admin')`.
+// Lists all lessons belonging to a course (across all of its modules).
+// Protected by `authenticate` + `authorize('super_admin', 'category_admin')`.
+// For a module-grouped view, use GET /api/courses/:courseId/modules instead.
 exports.getLessonsByCourse = async (req, res) => {
   const { courseId } = req.params;
 
@@ -93,11 +137,15 @@ exports.getLessonsByCourse = async (req, res) => {
     }
 
     const lessons = await Lesson.findAll({
-      where: { course_id: courseId },
-      order: [['order_index', 'ASC']],
       include: [
-        { model: Course, attributes: ['id', 'title', 'category_id'] },
+        {
+          model: Module,
+          as: 'module',
+          where: { course_id: courseId },
+          attributes: ['id', 'title', 'order_index'],
+        },
       ],
+      order: [['order_index', 'ASC']],
     });
 
     return res.status(200).json({ lessons });
@@ -115,58 +163,26 @@ exports.getLessonsByCourse = async (req, res) => {
 // Permission rules:
 //  - super_admin: can update any lesson.
 //  - category_admin: can update a lesson only when the lesson's course
-//    `category_id` matches their own. If `course_id` is being changed in
-//    the body, the *new* course's category must also match (otherwise 403).
+//    `category_id` matches their own. If `module_id` is being changed in
+//    the body, the *new* module's course category must also match (403).
 exports.updateLesson = async (req, res) => {
   const { id } = req.params;
-  const { title, type, url, order_index, course_id } = req.body;
+  const { title, type, url, order_index, module_id } = req.body;
 
   try {
-    // Re-fetch the authenticated user for role / category_id.
-    const currentUser = await User.findByPk(req.user.id);
-
-    if (!currentUser) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
     const lesson = await Lesson.findByPk(id);
     if (!lesson) {
       return res.status(404).json({ error: 'Lesson not found.' });
     }
 
-    // Fetch the course the lesson currently belongs to.
-    const course = await Course.findByPk(lesson.course_id);
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found.' });
-    }
+    // Permission check on the lesson's current module (loads user + course).
+    const access = await authorizeModuleAccess(req, res, lesson.module_id);
+    if (!access) return undefined;
 
-    // Permission: category_admin may only act on courses in their own category.
-    if (
-      currentUser.role === 'category_admin' &&
-      currentUser.category_id !== course.category_id
-    ) {
-      return res.status(403).json({
-        error:
-          'Category admin can only update lessons for courses in their own category.',
-      });
-    }
-
-    // If course_id is being changed, verify the new course is also within
-    // the category_admin's category (if applicable).
-    if (course_id !== undefined && course_id !== lesson.course_id) {
-      const newCourse = await Course.findByPk(course_id);
-      if (!newCourse) {
-        return res.status(404).json({ error: 'Course not found.' });
-      }
-      if (
-        currentUser.role === 'category_admin' &&
-        currentUser.category_id !== newCourse.category_id
-      ) {
-        return res.status(403).json({
-          error:
-            'Category admin can only update lessons for courses in their own category.',
-        });
-      }
+    // If module_id is being changed, verify the new module exists and belongs
+    if (module_id !== undefined && module_id !== lesson.module_id) {
+      const newAccess = await authorizeModuleAccess(req, res, module_id);
+      if (!newAccess) return undefined;
     }
 
     // Partial update: only apply fields present in the request body.
@@ -175,7 +191,7 @@ exports.updateLesson = async (req, res) => {
     if (type !== undefined) updateData.type = type;
     if (url !== undefined) updateData.url = url;
     if (order_index !== undefined) updateData.order_index = order_index;
-    if (course_id !== undefined) updateData.course_id = course_id;
+    if (module_id !== undefined) updateData.module_id = module_id;
 
     await lesson.update(updateData);
 
@@ -207,35 +223,14 @@ exports.deleteLesson = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Re-fetch the authenticated user for role / category_id.
-    const currentUser = await User.findByPk(req.user.id);
-
-    if (!currentUser) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
     const lesson = await Lesson.findByPk(id);
     if (!lesson) {
       return res.status(404).json({ error: 'Lesson not found.' });
     }
 
-    // Fetch the course the lesson belongs to.
-    const course = await Course.findByPk(lesson.course_id);
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found.' });
-    }
-
-    // Permission: category_admin may only delete lessons for courses in
-    // their own category.
-    if (
-      currentUser.role === 'category_admin' &&
-      currentUser.category_id !== course.category_id
-    ) {
-      return res.status(403).json({
-        error:
-          'Category admin can only delete lessons for courses in their own category.',
-      });
-    }
+    // Permission check via the lesson's module -> course (loads user too).
+    const access = await authorizeModuleAccess(req, res, lesson.module_id);
+    if (!access) return undefined;
 
     await lesson.destroy();
 

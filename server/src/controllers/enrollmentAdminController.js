@@ -28,6 +28,7 @@ exports.getPendingEnrollments = async (req, res) => {
     // INNER JOIN with unexpected results.
     const courseInclude = {
       model: Course,
+      as: 'course',
       attributes: ['id', 'title', 'category_id'],
     };
     if (currentUser.role === 'category_admin') {

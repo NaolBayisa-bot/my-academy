@@ -75,7 +75,7 @@ exports.getCoursesByCategory = async (req, res) => {
     const courses = await Course.findAll({
       where: { category_id: categoryId },
       include: [
-        { model: Category, attributes: ['id', 'name'] },
+        { model: Category, as: 'category', attributes: ['id', 'name'] },
         {
           model: User,
           as: 'creator',

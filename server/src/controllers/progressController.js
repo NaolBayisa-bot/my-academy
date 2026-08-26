@@ -1,4 +1,4 @@
-const { User, Enrollment, Lesson, LessonProgress } = require('../models');
+const { User, Enrollment, Lesson, LessonProgress, Module } = require('../models');
 
 // POST /api/enrollments/:enrollmentId/lessons/:lessonId/complete
 // Marks a lesson as complete for a given enrollment. Protected by
@@ -55,7 +55,13 @@ exports.markLessonComplete = async (req, res) => {
 
     // Auto-completion: check if all lessons in the course have been completed.
     const totalLessons = await Lesson.count({
-      where: { course_id: enrollment.course_id },
+      include: [
+        {
+          model: Module,
+          as: 'module',
+          where: { course_id: enrollment.course_id },
+        },
+      ],
     });
     const completedLessons = await LessonProgress.count({
       where: { enrollment_id: enrollmentId },
@@ -107,9 +113,15 @@ exports.getProgress = async (req, res) => {
       });
     }
 
-    // Count total lessons for the course.
+    // Count total lessons for the course (across all its modules).
     const totalLessons = await Lesson.count({
-      where: { course_id: enrollment.course_id },
+      include: [
+        {
+          model: Module,
+          as: 'module',
+          where: { course_id: enrollment.course_id },
+        },
+      ],
     });
 
     // Retrieve all completed lesson ids for this enrollment.

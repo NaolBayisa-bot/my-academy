@@ -14,22 +14,22 @@ const router = express.Router();
 // All lesson routes are protected: only super_admin or category_admin may
 // interact with lessons. The router is mounted at /api in src/index.js, so
 // the full paths are:
-//   POST   /api/courses/:courseId/lessons
+//   POST   /api/courses/:courseId/modules/:moduleId/lessons
 //   GET    /api/courses/:courseId/lessons
 //   PATCH  /api/lessons/:id
 //   DELETE /api/lessons/:id
 
-// POST /api/courses/:courseId/lessons
-// Create a lesson within a specific course.
-// `courseId` is taken from the URL and validated as a UUID; the body fields
-// (title, type, url) are required, `order_index` is optional. Input is
-// validated before auth so malformed payloads are rejected cheaply with 400.
+// POST /api/courses/:courseId/modules/:moduleId/lessons
+// Create a lesson within a specific module of a specific course.
 router.post(
-  '/courses/:courseId/lessons',
+  '/courses/:courseId/modules/:moduleId/lessons',
   [
     param('courseId')
       .isUUID()
       .withMessage('A valid courseId is required.'),
+    param('moduleId')
+      .isUUID()
+      .withMessage('A valid moduleId is required.'),
     body('title')
       .trim()
       .notEmpty()

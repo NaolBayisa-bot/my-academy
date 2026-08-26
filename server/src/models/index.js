@@ -18,7 +18,7 @@ const db = {};
 // Define associations between models. This is centralized here (after all
 // models are loaded) to avoid circular require() dependencies between model
 // files.
-const { User, Category, Course, Lesson, Enrollment, LessonProgress, Post } = db;
+const { User, Category, Course, Module, Lesson, Enrollment, LessonProgress, Post } = db;
 
 if (Category && User) {
   // A Category is administered by a User (admin_id -> Users.id).
@@ -32,33 +32,43 @@ if (Category && User) {
 
 if (Course && Category && User) {
   // A Course belongs to a Category (category_id -> Categories.id).
-  Course.belongsTo(Category, { foreignKey: 'category_id' });
+  // Accessible as course.category.
+  Course.belongsTo(Category, { as: 'category', foreignKey: 'category_id' });
 
   // A Course was created by a User (created_by -> Users.id).
   // Accessible as course.creator.
   Course.belongsTo(User, { as: 'creator', foreignKey: 'created_by' });
 
   // A Category has many Courses.
-  Category.hasMany(Course, { foreignKey: 'category_id' });
+  Category.hasMany(Course, { as: 'courses', foreignKey: 'category_id' });
 
   // A User (as creator) has many Courses.
   User.hasMany(Course, { as: 'createdCourses', foreignKey: 'created_by' });
 }
 
-if (Lesson && Course) {
-  // A Lesson belongs to a Course (course_id -> Courses.id).
-  // Accessible as lesson.course.
-  Lesson.belongsTo(Course, { foreignKey: 'course_id' });
+if (Module && Course) {
+  // A Module belongs to a Course (course_id -> Courses.id).
+  // Accessible as module.course.
+  Module.belongsTo(Course, { as: 'course', foreignKey: 'course_id' });
 
-  // A Course has many Lessons.
-  Course.hasMany(Lesson, { foreignKey: 'course_id' });
+  // A Course has many Modules. Accessible as course.modules.
+  Course.hasMany(Module, { as: 'modules', foreignKey: 'course_id' });
+}
+
+if (Lesson && Module) {
+  // A Lesson belongs to a Module (module_id -> Modules.id).
+  // Accessible as lesson.module.
+  Lesson.belongsTo(Module, { as: 'module', foreignKey: 'module_id' });
+
+  // A Module has many Lessons. Accessible as module.lessons.
+  Module.hasMany(Lesson, { as: 'lessons', foreignKey: 'module_id' });
 }
 
 if (Enrollment && User && Course) {
   // An Enrollment belongs to a Student (User) and a Course.
   // Accessible as enrollment.student and enrollment.course.
   Enrollment.belongsTo(User, { as: 'student', foreignKey: 'student_id' });
-  Enrollment.belongsTo(Course, { foreignKey: 'course_id' });
+  Enrollment.belongsTo(Course, { as: 'course', foreignKey: 'course_id' });
 
   // A Student has many Enrollments.
   User.hasMany(Enrollment, { as: 'enrollments', foreignKey: 'student_id' });
@@ -73,10 +83,16 @@ if (LessonProgress && Enrollment && Lesson) {
   LessonProgress.belongsTo(Lesson, { foreignKey: 'lesson_id' });
 
   // An Enrollment has many LessonProgresses.
-  Enrollment.hasMany(LessonProgress, { foreignKey: 'enrollment_id' });
+  Enrollment.hasMany(LessonProgress, {
+    as: 'lessonProgresses',
+    foreignKey: 'enrollment_id',
+  });
 
   // A Lesson has many LessonProgresses.
-  Lesson.hasMany(LessonProgress, { foreignKey: 'lesson_id' });
+  Lesson.hasMany(LessonProgress, {
+    as: 'lessonProgresses',
+    foreignKey: 'lesson_id',
+  });
 }
 
 if (Post && User) {

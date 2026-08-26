@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
+
+const POLL_INTERVAL_MS = 30_000
 
 function MyEnrollment() {
   const [enrollment, setEnrollment] = useState(null)
@@ -8,12 +10,33 @@ function MyEnrollment() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [completingId, setCompletingId] = useState(null)
+  // Status-transition notification: 'approved' | 'rejected' | null
+  const [statusNotice, setStatusNotice] = useState(null)
+  const prevStatusRef = useRef(undefined)
 
   const loadEnrollment = async (showLoading = false) => {
     if (showLoading) setLoading(true)
     try {
       const res = await api.get('/students/my-enrollment')
-      setEnrollment(res.data.enrollment)
+      const next = res.data.enrollment
+
+      // Detect a status transition caused by an admin action (approve /
+      // reject) so we can notify the student. The first-ever load seeds the
+      // ref silently — only real transitions raise a notice.
+      if (prevStatusRef.current === undefined) {
+        prevStatusRef.current = next ? next.status : null
+      } else {
+        const prev = prevStatusRef.current
+        const now = next ? next.status : null
+        if (prev && now && prev !== now) {
+          if (now === 'in_progress') setStatusNotice('approved')
+          else if (now === 'rejected') setStatusNotice('rejected')
+          else setStatusNotice(null)
+        }
+        prevStatusRef.current = now
+      }
+
+      setEnrollment(next)
     } catch (err) {
       setError(
         err.response?.data?.error || 'Failed to load your enrollment. Please try again.'
@@ -25,6 +48,16 @@ function MyEnrollment() {
 
   useEffect(() => {
     loadEnrollment(true)
+
+    // Poll + focus refresh so admin approval appears without a manual reload.
+    // Wrap so the focus Event object isn't passed as `showLoading`.
+    const intervalId = setInterval(() => loadEnrollment(), POLL_INTERVAL_MS)
+    const onFocus = () => loadEnrollment()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   // When the enrollment is in progress, load its progress summary. Re-runs
@@ -94,7 +127,9 @@ function MyEnrollment() {
     )
   }
 
-  const { course, lessons } = enrollment
+  const { course } = enrollment
+  // Lessons are nested under modules: course.modules[].lessons[]
+  const modules = course?.modules || []
   const status = enrollment.status
 
   return (
@@ -109,6 +144,68 @@ function MyEnrollment() {
       {error && (
         <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
           <p>{error}</p>
+        </div>
+      )}
+
+      {/* Approval / rejection notification banners (shown after a live
+          status transition detected by polling or tab focus) */}
+      {statusNotice === 'approved' && (
+        <div className="section-shell rounded-2xl border border-green-default/30 bg-[rgba(45,212,167,0.08)] p-5 mb-6 flex items-start justify-between gap-4 flex-wrap success-panel">
+          <p className="m-0 text-sm">
+            ✅ Your enrollment in{' '}
+            <span className="font-semibold">{course?.title || 'the course'}</span> was
+            approved! Your lessons are ready{status === 'in_progress' ? ' below' : ''}.
+          </p>
+          <button
+            type="button"
+            onClick={() => setStatusNotice(null)}
+            className="border border-[rgba(143,170,205,0.18)] bg-[rgba(15,27,40,0.8)] text-muted hover:text-cyan-default hover:border-cyan-default/40 transition-colors px-4 py-2 rounded-xl text-sm cursor-pointer shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      {statusNotice === 'rejected' && (
+        <div className="section-shell rounded-2xl border border-red-500/30 bg-[rgba(239,68,68,0.08)] p-5 mb-6 flex items-start justify-between gap-4 flex-wrap error-panel">
+          <p className="m-0 text-sm">
+            ❌ Your enrollment request was rejected
+            {enrollment.reason ? (
+              <>
+                {' '}— reason: <span className="font-semibold">{enrollment.reason}</span>
+              </>
+            ) : null}
+            . You can request a different course.
+          </p>
+          <button
+            type="button"
+            onClick={() => setStatusNotice(null)}
+            className="border border-[rgba(143,170,205,0.18)] bg-[rgba(15,27,40,0.8)] text-muted hover:text-cyan-default hover:border-cyan-default/40 transition-colors px-4 py-2 rounded-xl text-sm cursor-pointer shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Rejected enrollment state */}
+      {status === 'rejected' && (
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
+          <div className="card-top flex justify-between items-start gap-4">
+            <div className="info-block flex flex-col gap-1">
+              <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Enrollment rejected</span>
+              <h3>{course.title}</h3>
+            </div>
+            <span className="chip inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 border border-red-500/30 text-red-300">Rejected</span>
+          </div>
+          {enrollment.reason && (
+            <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0 mt-2">
+              Reason: {enrollment.reason}
+            </p>
+          )}
+          <div className="button-row flex flex-wrap items-center gap-2.5 mt-3">
+            <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+              Browse Courses
+            </Link>
+          </div>
         </div>
       )}
 
@@ -176,12 +273,28 @@ function MyEnrollment() {
             <div className="card-top flex justify-between items-start gap-4">
               <div className="info-block flex flex-col gap-1">
                 <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Course content</p>
-                <h3>Lessons</h3>
+                <h3>Modules & Lessons</h3>
               </div>
             </div>
 
-            <div className="lesson-list flex flex-col gap-2.5">
-              {lessons?.map((lesson) => {
+            {(!modules || modules.length === 0) && (
+              <p className="text-sm text-muted m-0 py-4 text-center">
+                No lessons have been added to this course yet. Check back soon.
+              </p>
+            )}
+
+            {(modules || []).map((module) => (
+              <div key={module.id} className="mb-4 last:mb-0">
+                <h4 className="text-sm font-bold text-cyan-default uppercase tracking-wide m-0 mb-2.5">
+                  {module.title}
+                </h4>
+                <div className="lesson-list flex flex-col gap-2.5">
+                  {(!module.lessons || module.lessons.length === 0) && (
+                    <p className="text-sm text-muted m-0 py-2 text-center">
+                      No lessons in this module yet.
+                    </p>
+                  )}
+                  {(module.lessons || []).map((lesson) => {
                 const isCompleted = (progress?.completedLessonIds || []).includes(
                   lesson.id
                 )
@@ -209,8 +322,10 @@ function MyEnrollment() {
                     </a>
                   </div>
                 )
-              })}
-            </div>
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

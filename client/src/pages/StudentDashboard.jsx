@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import PostsFeed from './PostsFeed'
+import { useCategoryCourses } from '../hooks/useCategoryCourses'
 
 // Student statistical dashboard. Aggregates the student's own endpoints:
 //  - GET /api/students/my-category-courses -> available courses
@@ -27,19 +28,20 @@ function StudentDashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const hasCategory = Boolean(user?.category_id)
+  const { courses, newCourseIds, markAllSeen } =
+    useCategoryCourses(hasCategory)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       try {
-        const [coursesRes, enrollmentRes, historyRes] = await Promise.all([
-          api.get('/students/my-category-courses'),
+        const [enrollmentRes, historyRes] = await Promise.all([
           api.get('/students/my-enrollment'),
           api.get('/students/my-history'),
         ])
         if (cancelled) return
 
-        const courses = coursesRes.data.courses || []
         const enrollment = enrollmentRes.data.enrollment
         const history = historyRes.data.enrollments || []
 
@@ -59,7 +61,6 @@ function StudentDashboard() {
         }
 
         setStats({
-          availableCourses: courses.length,
           completedCourses: history.length,
           activeEnrollment: enrollment || null,
           lessonsDone,
@@ -74,8 +75,15 @@ function StudentDashboard() {
       }
     }
     load()
+
+    // Poll + focus refresh so an admin approval (pending -> in_progress)
+    // shows up on the dashboard without a manual reload.
+    const intervalId = setInterval(load, 30_000)
+    window.addEventListener('focus', load)
     return () => {
       cancelled = true
+      clearInterval(intervalId)
+      window.removeEventListener('focus', load)
     }
   }, [])
 
@@ -111,9 +119,37 @@ function StudentDashboard() {
         </Link>
       </div>
 
+      {/* New-course notification banner */}
+      {newCourseIds.length > 0 && (
+        <div className="rounded-2xl border border-green-default/30 bg-[rgba(45,212,167,0.08)] p-5 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-xs font-semibold text-green-default uppercase tracking-[0.16em] m-0 mb-1">
+              🎉 New course{newCourseIds.length > 1 ? 's' : ''} available
+            </p>
+            <p className="m-0 text-sm">
+              Your admin just added{' '}
+              <span className="font-semibold">
+                {courses
+                  .filter((c) => newCourseIds.includes(c.id))
+                  .map((c) => c.title)
+                  .join(', ')}
+              </span>{' '}
+              to your category.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={markAllSeen}
+            className="border border-[rgba(143,170,205,0.18)] bg-[rgba(15,27,40,0.8)] text-muted hover:text-cyan-default hover:border-cyan-default/40 transition-colors px-4 py-2 rounded-xl text-sm cursor-pointer shrink-0"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 max-sm:grid-cols-1">
-        <StatCard icon="📚" iconBg="bg-cyan-soft text-cyan-default" label="Available" value={stats?.availableCourses ?? 0} sub="courses in your category" />
+        <StatCard icon="📚" iconBg="bg-cyan-soft text-cyan-default" label="Available" value={courses.length} sub="courses in your category" />
         <StatCard icon="🏆" iconBg="bg-green-soft text-green-default" label="Completed" value={stats?.completedCourses ?? 0} sub="courses finished" />
         <StatCard
           icon={hasActive ? '📈' : '💤'}
@@ -175,6 +211,56 @@ function StudentDashboard() {
           </div>
         </section>
       )}
+
+      {/* Available courses in the student's category */}
+      <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h3 className="font-bold m-0 text-base">Available courses</h3>
+          <Link to="/student/browse" className="text-xs text-cyan-default no-underline hover:underline">
+            browse all →
+          </Link>
+        </div>
+
+        {courses.length === 0 ? (
+          <p className="text-sm text-muted m-0">
+            No courses in your category yet — check back soon.
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-sm:grid-cols-1">
+            {courses.map((course) => {
+              const isNew = newCourseIds.includes(course.id)
+              return (
+                <article
+                  key={course.id}
+                  className={`rounded-xl border bg-[rgba(9,17,27,0.5)] p-4 flex flex-col gap-2 transition-colors duration-200 ${
+                    isNew
+                      ? 'border-green-default/40'
+                      : 'border-[rgba(143,170,205,0.1)] hover:border-cyan-default/25'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h4 className="font-semibold text-sm m-0 leading-snug">{course.title}</h4>
+                    {isNew && (
+                      <span className="chip inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-soft text-green-default border border-green-default/30">
+                        New
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted m-0 line-clamp-2">
+                    {course.description || 'No description provided.'}
+                  </p>
+                  <Link
+                    to="/student/browse"
+                    className="text-xs text-cyan-default no-underline mt-auto pt-1 hover:underline"
+                  >
+                    Request enrollment →
+                  </Link>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       {/* Community posts feed */}
       <PostsFeed />

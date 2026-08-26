@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
+import { useCategoryCourses } from '../../hooks/useCategoryCourses'
 
 function BrowseCourses() {
   const { user } = useAuth()
 
-  const [courses, setCourses] = useState([])
+  const hasCategory = Boolean(user?.category_id)
+  const { courses, fetchError: coursesFetchError } =
+    useCategoryCourses(hasCategory)
   const [enrollment, setEnrollment] = useState(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
@@ -23,12 +26,8 @@ function BrowseCourses() {
     let cancelled = false
     const load = async () => {
       try {
-        const [coursesRes, enrollmentRes] = await Promise.all([
-          api.get('/students/my-category-courses'),
-          api.get('/students/my-enrollment'),
-        ])
+        const enrollmentRes = await api.get('/students/my-enrollment')
         if (cancelled) return
-        setCourses(coursesRes.data.courses)
         setEnrollment(enrollmentRes.data.enrollment)
       } catch (err) {
         if (!cancelled) {
@@ -108,6 +107,11 @@ function BrowseCourses() {
       {fetchError && (
         <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
           <p>{fetchError}</p>
+        </div>
+      )}
+      {coursesFetchError && (
+        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
+          <p>{coursesFetchError}</p>
         </div>
       )}
 

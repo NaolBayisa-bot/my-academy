@@ -1,21 +1,21 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 
-const Lesson = sequelize.define(
-  'Lesson',
+
+const Module = sequelize.define(
+  'Module',
   {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    module_id: {
+    course_id: {
       type: DataTypes.UUID,
       allowNull: false,
-      // Foreign key to Modules.id (association defined in models/index.js).
-      // A lesson always lives inside a module of a course.
+      // Foreign key to Courses.id (association defined in models/index.js).
       references: {
-        model: 'Modules',
+        model: 'Courses',
         key: 'id',
       },
     },
@@ -23,13 +23,9 @@ const Lesson = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    type: {
-      type: DataTypes.ENUM('video', 'download'),
-      allowNull: false,
-    },
-    url: {
-      type: DataTypes.STRING,
-      allowNull: false,
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
     order_index: {
       type: DataTypes.INTEGER,
@@ -37,8 +33,8 @@ const Lesson = sequelize.define(
     },
   },
   {
-    tableName: 'Lessons',
+    tableName: 'Modules',
   }
 );
 
-module.exports = Lesson;
+module.exports = Module;
