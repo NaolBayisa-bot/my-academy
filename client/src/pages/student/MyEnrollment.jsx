@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
+import StatusChip from '../../components/student/StatusChip'
+import ProgressBarRing from '../../components/student/ProgressBarRing'
+import CheckCircle from '../../components/student/CheckCircle'
+import SkeletonRows from '../../components/student/SkeletonRows'
+import VideoModal from '../../components/student/VideoModal'
+import ConfettiBurst from '../../components/student/ConfettiBurst'
 
 const POLL_INTERVAL_MS = 30_000
+const CONFETTI_DURATION_MS = 5200
 
 function MyEnrollment() {
   const [enrollment, setEnrollment] = useState(null)
@@ -14,6 +21,32 @@ function MyEnrollment() {
   const [statusNotice, setStatusNotice] = useState(null)
   const prevStatusRef = useRef(undefined)
 
+  // --- Learning-workspace UI state ----------------------------------------
+  // Lesson ids completed optimistically (reconciled against the server).
+  const [pendingComplete, setPendingComplete] = useState(() => new Set())
+  // Which module accordions are open: { [moduleId]: boolean }
+  const [expandedModules, setExpandedModules] = useState({})
+  const accordionInitRef = useRef(null)
+  // Currently open video modal: { title, url } | null
+  const [activeLesson, setActiveLesson] = useState(null)
+  // Lesson row temporarily highlighted by "Continue learning"
+  const [highlightId, setHighlightId] = useState(null)
+  // One-shot completion celebration
+  const [showConfetti, setShowConfetti] = useState(false)
+  const celebratedRef = useRef(false)
+  const confettiTimerRef = useRef(null)
+
+  const celebrateOnce = () => {
+    if (celebratedRef.current) return
+    celebratedRef.current = true
+    setShowConfetti(true)
+    clearTimeout(confettiTimerRef.current)
+    confettiTimerRef.current = setTimeout(
+      () => setShowConfetti(false),
+      CONFETTI_DURATION_MS
+    )
+  }
+
   const loadEnrollment = async (showLoading = false) => {
     if (showLoading) setLoading(true)
     try {
@@ -21,8 +54,7 @@ function MyEnrollment() {
       const next = res.data.enrollment
 
       // Detect a status transition caused by an admin action (approve /
-      // reject) so we can notify the student. The first-ever load seeds the
-      // ref silently — only real transitions raise a notice.
+      // reject / mark-complete) so we can notify or celebrate.
       if (prevStatusRef.current === undefined) {
         prevStatusRef.current = next ? next.status : null
       } else {
@@ -31,6 +63,7 @@ function MyEnrollment() {
         if (prev && now && prev !== now) {
           if (now === 'in_progress') setStatusNotice('approved')
           else if (now === 'rejected') setStatusNotice('rejected')
+          else if (now === 'completed') celebrateOnce()
           else setStatusNotice(null)
         }
         prevStatusRef.current = now
@@ -39,30 +72,30 @@ function MyEnrollment() {
       setEnrollment(next)
     } catch (err) {
       setError(
-        err.response?.data?.error || 'Failed to load your enrollment. Please try again.'
+        err.response?.data?.error ||
+          'Failed to load your enrollment. Please try again.'
       )
     } finally {
       if (showLoading) setLoading(false)
     }
   }
 
+  // Mount: initial fetch + poll/tab-focus refresh so admin approval appears
+  // without a manual reload.
   useEffect(() => {
     loadEnrollment(true)
-
-    // Poll + focus refresh so admin approval appears without a manual reload.
-    // Wrap so the focus Event object isn't passed as `showLoading`.
     const intervalId = setInterval(() => loadEnrollment(), POLL_INTERVAL_MS)
     const onFocus = () => loadEnrollment()
     window.addEventListener('focus', onFocus)
     return () => {
       clearInterval(intervalId)
       window.removeEventListener('focus', onFocus)
+      clearTimeout(confettiTimerRef.current)
     }
   }, [])
 
-  // When the enrollment is in progress, load its progress summary. Re-runs
-  // whenever a new enrollment object arrives (e.g. after a lesson is marked
-  // complete) so the bar/checkboxes stay in sync.
+  // Load the progress summary while enrolled. Re-runs whenever a new
+  // enrollment object arrives so bars/checkmarks stay in sync.
   useEffect(() => {
     if (enrollment && enrollment.status === 'in_progress') {
       api
@@ -70,7 +103,8 @@ function MyEnrollment() {
         .then((res) => setProgress(res.data))
         .catch((err) =>
           setError(
-            err.response?.data?.error || 'Failed to load progress. Please try again.'
+            err.response?.data?.error ||
+              'Failed to load progress. Please try again.'
           )
         )
     } else {
@@ -78,31 +112,123 @@ function MyEnrollment() {
     }
   }, [enrollment])
 
-  const handleComplete = async (lessonId) => {
+  // ----- Derived learning data (null-safe during the loading phase) -------
+  const course = enrollment?.course
+  const modulesList = course?.modules || []
+  const status = enrollment?.status
+
+  const flatLessons = modulesList.flatMap((m) =>
+    (m.lessons || []).map((l) => ({
+      ...l,
+      moduleId: m.id,
+      moduleTitle: m.title,
+    }))
+  )
+  const serverCompleted = new Set(progress?.completedLessonIds || [])
+  const completedIds = new Set([...serverCompleted, ...pendingComplete])
+  const totalLessons = progress?.totalLessons ?? flatLessons.length
+  const completedCount = Math.min(totalLessons, completedIds.size)
+  const percentage =
+    totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0
+  const nextUp = flatLessons.find((l) => !completedIds.has(l.id)) || null
+
+  // Reconcile: drop pending ids the server has confirmed, silently.
+  useEffect(() => {
+    setPendingComplete((prev) => {
+      if (prev.size === 0) return prev
+      let changed = false
+      const n = new Set(prev)
+      for (const id of prev) {
+        if (serverCompleted.has(id)) {
+          n.delete(id)
+          changed = true
+        }
+      }
+      return changed ? n : prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress])
+
+  // Initialize the accordion once per enrollment: open the module holding
+  // the next incomplete lesson (or the first module when everything's done).
+  useEffect(() => {
+    const key = enrollment?.id
+    if (!key || accordionInitRef.current === key) return undefined
+    accordionInitRef.current = key
+    const target = nextUp?.moduleId || modulesList[0]?.id
+    if (target) {
+      setExpandedModules({ [target]: true })
+    }
+    return undefined
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enrollment?.id, nextUp?.moduleId])
+
+  const toggleModule = (id) =>
+    setExpandedModules((prev) => ({ ...prev, [id]: !prev[id] }))
+
+  const ensureModuleOpen = (moduleId) =>
+    setExpandedModules((prev) => ({ ...prev, [moduleId]: true }))
+
+  const continueLearning = () => {
+    if (!nextUp) return
+    ensureModuleOpen(nextUp.moduleId)
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-lesson-id="${nextUp.id}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightId(nextUp.id)
+      setTimeout(() => setHighlightId(null), 3200)
+    })
+  }
+
+  // Optimistic completion: flip the UI immediately, reconcile on refetch.
+  const handleToggleComplete = async (lessonId) => {
+    if (completedIds.has(lessonId)) return
     setCompletingId(lessonId)
     setError(null)
+    const willFinish = totalLessons > 0 && completedCount + 1 >= totalLessons
+    setPendingComplete((prev) => new Set(prev).add(lessonId))
     try {
-      await api.post(
-        `/enrollments/${enrollment.id}/lessons/${lessonId}/complete`
-      )
-      // Refresh the enrollment; the effect above reloads progress and the UI
-      // flips to "completed" if this was the last lesson.
+      await api.post(`/enrollments/${enrollment.id}/lessons/${lessonId}/complete`)
       await loadEnrollment()
+      if (willFinish) setTimeout(celebrateOnce, 600)
     } catch (err) {
+      // Roll the optimistic tick back out on failure.
+      setPendingComplete((prev) => {
+        const n = new Set(prev)
+        n.delete(lessonId)
+        return n
+      })
       setError(
-        err.response?.data?.error || 'Failed to mark lesson complete. Please try again.'
+        err.response?.data?.error ||
+          'Failed to mark lesson complete. Please try again.'
       )
     } finally {
       setCompletingId(null)
     }
   }
 
+  const openLesson = (lesson) => {
+    if (lesson.type === 'video') {
+      setActiveLesson({ title: lesson.title, url: lesson.url })
+    } else {
+      window.open(lesson.url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  // Running order number across all modules (used while rendering rows).
+  let runningIndex = 0
+
   if (loading) {
     return (
       <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <p>Loading...</p>
+        <div className="page-header mb-6">
+          <div>
+            <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
+            <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My Enrollment</h1>
+          </div>
         </div>
+        <SkeletonRows rows={5} />
       </div>
     )
   }
@@ -119,7 +245,7 @@ function MyEnrollment() {
 
         <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 empty-state text-center py-10">
           <p>You don't have an active enrollment yet.</p>
-          <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
+          <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer">
             Browse Courses
           </Link>
         </div>
@@ -127,13 +253,17 @@ function MyEnrollment() {
     )
   }
 
-  const { course } = enrollment
-  // Lessons are nested under modules: course.modules[].lessons[]
-  const modules = course?.modules || []
-  const status = enrollment.status
-
   return (
     <div className="content-page max-w-[1200px] mx-auto w-full p-6">
+      <ConfettiBurst show={showConfetti} />
+      {activeLesson && (
+        <VideoModal
+          url={activeLesson.url}
+          title={activeLesson.title}
+          onClose={() => setActiveLesson(null)}
+        />
+      )}
+
       <div className="page-header mb-6">
         <div>
           <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
@@ -142,13 +272,11 @@ function MyEnrollment() {
       </div>
 
       {error && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
+        <div className="section-shell rounded-2xl border border-red-500/30 bg-[rgba(239,68,68,0.08)] p-5 mb-6 error-panel">
           <p>{error}</p>
         </div>
       )}
 
-      {/* Approval / rejection notification banners (shown after a live
-          status transition detected by polling or tab focus) */}
       {statusNotice === 'approved' && (
         <div className="section-shell rounded-2xl border border-green-default/30 bg-[rgba(45,212,167,0.08)] p-5 mb-6 flex items-start justify-between gap-4 flex-wrap success-panel">
           <p className="m-0 text-sm">
@@ -186,15 +314,15 @@ function MyEnrollment() {
         </div>
       )}
 
-      {/* Rejected enrollment state */}
+      {/* --------------------------- REJECTED --------------------------- */}
       {status === 'rejected' && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
+        <div className="section-shell rounded-2xl border border-red-500/30 bg-[rgba(239,68,68,0.08)] p-5 mb-6 error-panel">
           <div className="card-top flex justify-between items-start gap-4">
             <div className="info-block flex flex-col gap-1">
               <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Enrollment rejected</span>
               <h3>{course.title}</h3>
             </div>
-            <span className="chip inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 border border-red-500/30 text-red-300">Rejected</span>
+            <StatusChip status="rejected" />
           </div>
           {enrollment.reason && (
             <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0 mt-2">
@@ -209,14 +337,15 @@ function MyEnrollment() {
         </div>
       )}
 
+      {/* --------------------------- PENDING ---------------------------- */}
       {status === 'pending' && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 notice-panel border-cyan-default/30 bg-[rgba(56,215,255,0.06)]">
+        <div className="section-shell rounded-2xl border border-cyan-default/30 bg-[rgba(56,215,255,0.06)] p-5 mb-6 notice-panel">
           <div className="card-top flex justify-between items-start gap-4">
             <div className="info-block flex flex-col gap-1">
               <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Waiting for approval</span>
               <h3>{course.title}</h3>
             </div>
-            <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">Pending</span>
+            <StatusChip status="pending" />
           </div>
           <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">
             Your enrollment request is under review. We’ll update your access as soon as an admin approves it.
@@ -224,108 +353,195 @@ function MyEnrollment() {
         </div>
       )}
 
+      {/* -------------------------- COMPLETED --------------------------- */}
       {status === 'completed' && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 success-panel border-green-500/30 bg-[rgba(45,212,167,0.08)]">
+        <div className="section-shell rounded-2xl border border-green-default/30 bg-[rgba(45,212,167,0.08)] p-5 mb-6 success-panel">
           <div className="card-top flex justify-between items-start gap-4">
             <div className="info-block flex flex-col gap-1">
               <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Course completed</span>
               <h3>{course.title}</h3>
             </div>
-            <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">Completed</span>
+            <StatusChip status="completed" />
           </div>
-          <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">🎉 Congratulations! You completed the course.</p>
+          <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">🎉 Congratulations — you finished every lesson!</p>
           <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
-            <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
+            <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer">
               Explore more courses
             </Link>
           </div>
         </div>
       )}
 
+      {/* ------------------------- IN PROGRESS -------------------------- */}
       {status === 'in_progress' && (
-        <div className="card-grid grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          <article className="list-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
-            <div className="card-top flex justify-between items-start gap-4">
-              <div className="info-block flex flex-col gap-1">
-                <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Active course</p>
-                <h3>{course.title}</h3>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          {/* ---- Sticky course rail ---- */}
+          <aside className="w-full shrink-0 self-start lg:sticky lg:top-24 lg:w-[320px]">
+            <article className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-4 hover:border-cyan-default/30 transition-colors duration-200">
+              <div className="card-top flex justify-between items-start gap-4">
+                <div className="info-block flex flex-col gap-1 min-w-0">
+                  <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1">Active course</p>
+                  <h3 className="m-0 leading-snug break-words">{course.title}</h3>
+                </div>
+                <StatusChip status="in_progress" />
               </div>
-              <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">In progress</span>
-            </div>
 
-            <div className="info-block flex flex-col gap-1">
-              <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Progress</span>
-              <p>
-                {progress?.completedCount ?? 0} of {progress?.totalLessons ?? 0}{' '}
-                lessons completed
-              </p>
-            </div>
+              {course.description && (
+                <p className="text-sm text-muted leading-relaxed m-0">{course.description}</p>
+              )}
 
-            <div className="progress-track h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
-              <div
-                className="progress-bar h-full rounded-full bg-gradient-to-r from-cyan-default to-green-default transition-all duration-300"
-                style={{ width: `${progress?.percentage ?? 0}%` }}
-              />
-            </div>
-          </article>
-
-          <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 lesson-panel">
-            <div className="card-top flex justify-between items-start gap-4">
-              <div className="info-block flex flex-col gap-1">
-                <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Course content</p>
-                <h3>Modules & Lessons</h3>
-              </div>
-            </div>
-
-            {(!modules || modules.length === 0) && (
-              <p className="text-sm text-muted m-0 py-4 text-center">
-                No lessons have been added to this course yet. Check back soon.
-              </p>
-            )}
-
-            {(modules || []).map((module) => (
-              <div key={module.id} className="mb-4 last:mb-0">
-                <h4 className="text-sm font-bold text-cyan-default uppercase tracking-wide m-0 mb-2.5">
-                  {module.title}
-                </h4>
-                <div className="lesson-list flex flex-col gap-2.5">
-                  {(!module.lessons || module.lessons.length === 0) && (
-                    <p className="text-sm text-muted m-0 py-2 text-center">
-                      No lessons in this module yet.
-                    </p>
-                  )}
-                  {(module.lessons || []).map((lesson) => {
-                const isCompleted = (progress?.completedLessonIds || []).includes(
-                  lesson.id
-                )
-                return (
-                  <div key={lesson.id} className="lesson-item flex items-center justify-between gap-4 rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] px-4 py-3">
-                    <label className="lesson-toggle flex items-center gap-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isCompleted}
-                        onChange={() => handleComplete(lesson.id)}
-                        disabled={isCompleted || completingId === lesson.id}
-                      />
-                      <span>
-                        {lesson.title} <em>({lesson.type})</em>
-                      </span>
-                    </label>
-
-                    <a
-                      href={lesson.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="secondary-btn lesson-link inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      Open
-                    </a>
-                  </div>
-                )
-                  })}
+              <div className="flex items-center gap-4">
+                <ProgressBarRing percentage={percentage} size={112} />
+                <div className="info-block flex flex-col gap-1 min-w-0">
+                  <span className="text-lg font-bold text-white">
+                    {completedCount} <span className="text-muted font-medium">of {totalLessons}</span>
+                  </span>
+                  <span className="text-xs text-muted">lessons completed</span>
                 </div>
               </div>
-            ))}
+
+              <div className="progress-track h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
+                <div
+                  className="progress-bar h-full rounded-full bg-gradient-to-r from-cyan-default to-green-default transition-all duration-500"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+
+              {nextUp ? (
+                <div className="rounded-xl border border-cyan-default/25 bg-[rgba(56,215,255,0.06)] p-3.5">
+                  <p className="m-0 mb-1 text-xs font-semibold text-cyan-default uppercase tracking-wider">Next up</p>
+                  <p className="m-0 mb-3 text-sm font-medium truncate">{nextUp.title}</p>
+                  <button
+                    type="button"
+                    onClick={continueLearning}
+                    className="primary-btn w-full inline-flex items-center justify-center gap-2 no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+                  >
+                    ▶ Continue learning
+                  </button>
+                </div>
+              ) : (
+                totalLessons > 0 && (
+                  <div className="rounded-xl border border-green-default/25 bg-[rgba(45,212,167,0.06)] p-3.5 text-sm text-green-default font-semibold">
+                    🎉 All lessons done — nicely!
+                  </div>
+                )
+              )}
+            </article>
+          </aside>
+
+          {/* ---- Curriculum accordions ---- */}
+          <div className="min-w-0 flex-1">
+            <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 lesson-panel">
+              <div className="card-top flex justify-between items-center gap-4 mb-4">
+                <div className="info-block">
+                  <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1">Course content</p>
+                  <h3 className="m-0">Curriculum</h3>
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(143,170,205,0.18)] bg-[rgba(148,175,211,0.12)] px-2.5 py-1 text-xs font-medium text-muted">
+                  {completedCount}/{totalLessons} done
+                </span>
+              </div>
+
+              {flatLessons.length === 0 && (
+                <p className="text-sm text-muted m-0 py-4 text-center">
+                  No lessons have been added to this course yet. Check back soon.
+                </p>
+              )}
+
+              {modulesList.map((module) => {
+                const modLessons = module.lessons || []
+                const modDone = modLessons.filter((l) => completedIds.has(l.id)).length
+                const modPct = modLessons.length
+                  ? Math.round((modDone / modLessons.length) * 100)
+                  : 0
+                const isOpen = !!expandedModules[module.id]
+                return (
+                  <div key={module.id} className="mb-3 last:mb-0 rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.45)] overflow-hidden">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={`module-body-${module.id}`}
+                      onClick={() => toggleModule(module.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer bg-transparent border-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-default/50"
+                    >
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                        className={`h-4 w-4 shrink-0 text-muted transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                      >
+                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                      </svg>
+                      <span className="flex-1 min-w-0 truncate text-sm font-bold text-cyan-default uppercase tracking-wide">
+                        {module.title}
+                      </span>
+                      {modLessons.length > 0 && (
+                        <span className="hidden sm:block w-24 h-1.5 rounded-full bg-[rgba(15,27,40,0.9)] overflow-hidden shrink-0" aria-hidden="true">
+                          <span className="block h-full rounded-full bg-gradient-to-r from-cyan-default to-green-default transition-all duration-300" style={{ width: `${modPct}%` }} />
+                        </span>
+                      )}
+                      <span className="text-xs font-semibold text-muted shrink-0 tabular-nums">
+                        {modDone}/{modLessons.length}
+                      </span>
+                    </button>
+
+                    {isOpen && (
+                      <div id={`module-body-${module.id}`} className="px-3 pb-3 pt-1 flex flex-col gap-2">
+                        {modLessons.length === 0 && (
+                          <p className="text-sm text-muted m-0 py-2 text-center">No lessons in this module yet.</p>
+                        )}
+                        {modLessons.map((lesson) => {
+                          runningIndex += 1
+                          const idx = runningIndex
+                          const isDone = completedIds.has(lesson.id)
+                          const busy = completingId === lesson.id && !isDone
+                          return (
+                            <div
+                              key={lesson.id}
+                              data-lesson-id={lesson.id}
+                              className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-200 ${
+                                isDone
+                                  ? 'border-green-default/20 bg-[rgba(45,212,167,0.05)]'
+                                  : 'border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] hover:border-cyan-default/40'
+                              } ${highlightId === lesson.id ? 'row-highlight' : ''}`}
+                            >
+                              <CheckCircle
+                                completed={isDone}
+                                busy={busy}
+                                label={`${isDone ? 'Completed' : 'Mark complete'}: ${lesson.title}`}
+                                onClick={() => handleToggleComplete(lesson.id)}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => openLesson(lesson)}
+                                className="flex min-w-0 flex-1 items-center gap-2.5 text-left cursor-pointer bg-transparent border-0 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/50 rounded"
+                              >
+                                <span className="shrink-0 grid place-items-center h-5 w-5 rounded-md bg-[rgba(148,175,211,0.12)] text-[10px] font-bold text-muted tabular-nums" aria-hidden="true">
+                                  {idx}
+                                </span>
+                                <span className={`min-w-0 truncate text-sm font-medium ${isDone ? 'text-muted line-through decoration-green-default/40' : 'text-white'}`}>
+                                  {lesson.title}
+                                </span>
+                                <span className="hidden md:inline shrink-0 text-[11px] font-medium text-muted border border-[rgba(143,170,205,0.18)] rounded-md px-1.5 py-0.5">
+                                  {lesson.type === 'video' ? '▶ Video' : '⬇ Download'}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openLesson(lesson)}
+                                className="secondary-btn shrink-0 inline-flex items-center justify-center gap-1.5 no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-4 py-2 rounded-xl text-sm hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60"
+                              >
+                                {lesson.type === 'video' ? 'Watch' : 'Get'}
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       )}

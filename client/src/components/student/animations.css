@@ -1,0 +1,37 @@
+/* Self-contained animation helpers for the student learning UI. */
+
+/* Draw-in animation for the completion checkmark */
+@keyframes checkDraw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.check-path {
+  stroke-dasharray: 24;
+  animation: checkDraw 300ms ease-out forwards;
+}
+
+/* Falling confetti pieces */
+@keyframes confettiFall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+/* Attention pulse used when "Continue learning" jumps to a lesson */
+@keyframes rowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 215, 255, 0); }
+  30% {
+    box-shadow: 0 0 0 6px rgba(56, 215, 255, 0.25);
+    background-color: rgba(56, 215, 255, 0.08);
+  }
+}
+.row-highlight {
+  animation: rowPulse 1.4s ease-in-out 2;
+}
