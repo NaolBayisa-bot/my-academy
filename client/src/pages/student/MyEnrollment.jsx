@@ -181,19 +181,19 @@ function MyEnrollment() {
     })
   }
 
-  // Optimistic completion: flip the UI immediately, reconcile on refetch.
-  const handleToggleComplete = async (lessonId) => {
-    if (completedIds.has(lessonId)) return
-    setCompletingId(lessonId)
+  // Core completion logic shared by the curriculum checklist and the video
+  // modal. Optimistic tick -> server POST -> reconcile via refetch; rolls the
+  // optimistic tick back on failure.
+  const completeLessonCore = async (lessonId) => {
+    if (completedIds.has(lessonId)) return false
     setError(null)
-    const willFinish = totalLessons > 0 && completedCount + 1 >= totalLessons
+    setCompletingId(lessonId)
     setPendingComplete((prev) => new Set(prev).add(lessonId))
     try {
       await api.post(`/enrollments/${enrollment.id}/lessons/${lessonId}/complete`)
       await loadEnrollment()
-      if (willFinish) setTimeout(celebrateOnce, 600)
+      return true
     } catch (err) {
-      // Roll the optimistic tick back out on failure.
       setPendingComplete((prev) => {
         const n = new Set(prev)
         n.delete(lessonId)
@@ -203,16 +203,61 @@ function MyEnrollment() {
         err.response?.data?.error ||
           'Failed to mark lesson complete. Please try again.'
       )
+      return false
     } finally {
       setCompletingId(null)
     }
   }
 
+  const handleToggleComplete = async (lessonId) => {
+    const willFinish = totalLessons > 0 && completedCount + 1 >= totalLessons
+    const ok = await completeLessonCore(lessonId)
+    if (ok && willFinish) setTimeout(celebrateOnce, 600)
+  }
+
   const openLesson = (lesson) => {
     if (lesson.type === 'video') {
-      setActiveLesson({ title: lesson.title, url: lesson.url })
+      // Store the whole lesson (id/title/url/content) — the modal needs all of
+      // it plus the parent completes via id on finish.
+      setActiveLesson(lesson)
     } else {
       window.open(lesson.url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  /**
+   * Invoked by the video modal when playback ends (YouTube API) or when the
+   * student presses "Complete & continue". Completes the lesson and tells the
+   * modal what to do next:
+   *   - end=true        -> final lesson; modal closes, confetti fires here.
+   *   - next={fields}   -> modal swaps itself to the following lesson.
+   */
+  const handleWatchFinished = async () => {
+    const lesson = activeLesson
+    if (!lesson || completedIds.has(lesson.id)) return { ok: false }
+
+    const isEnd =
+      flatLessons.filter(
+        (l) => l.id !== lesson.id && !completedIds.has(l.id)
+      ).length === 0
+
+    const ok = await completeLessonCore(lesson.id)
+    if (!ok) return { ok: false }
+
+    if (isEnd) {
+      celebrateOnce()
+      return { ok: true, next: null, end: true }
+    }
+
+    const doneSet = new Set([...completedIds, lesson.id])
+    const next =
+      flatLessons.find((l) => l.id !== lesson.id && !doneSet.has(l.id)) || null
+    return {
+      ok: true,
+      end: false,
+      next: next
+        ? { title: next.title, url: next.url, content: next.content, done: false }
+        : null,
     }
   }
 
@@ -258,8 +303,11 @@ function MyEnrollment() {
       <ConfettiBurst show={showConfetti} />
       {activeLesson && (
         <VideoModal
-          url={activeLesson.url}
           title={activeLesson.title}
+          url={activeLesson.url}
+          content={activeLesson.content}
+          isDone={completedIds.has(activeLesson.id)}
+          onRequestFinish={handleWatchFinished}
           onClose={() => setActiveLesson(null)}
         />
       )}

@@ -49,6 +49,10 @@ router.post(
       .bail()
       .isURL()
       .withMessage('A valid URL is required.'),
+    body('content')
+      .optional({ values: 'falsy' })
+      .isString()
+      .withMessage('Lesson notes must be text.'),
     body('order_index')
       .optional()
       .isInt()

@@ -23,6 +23,7 @@ function CourseDetail() {
   const [addTitle, setAddTitle] = useState('')
   const [addType, setAddType] = useState('video')
   const [addUrl, setAddUrl] = useState('')
+  const [addContent, setAddContent] = useState('')
   const [addOrder, setAddOrder] = useState('')
 
   // Edit lesson form state
@@ -30,6 +31,7 @@ function CourseDetail() {
   const [editTitle, setEditTitle] = useState('')
   const [editType, setEditType] = useState('video')
   const [editUrl, setEditUrl] = useState('')
+  const [editContent, setEditContent] = useState('')
   const [editOrder, setEditOrder] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
@@ -101,6 +103,7 @@ function CourseDetail() {
     setAddTitle('')
     setAddType('video')
     setAddUrl('')
+    setAddContent('')
     setAddOrder('')
     clearError()
   }
@@ -114,10 +117,12 @@ function CourseDetail() {
         title: addTitle,
         type: addType,
         url: addUrl,
+        content: addContent.trim() === '' ? undefined : addContent,
         order_index: addOrder === '' ? undefined : Number(addOrder),
       })
       setAddTitle('')
       setAddUrl('')
+      setAddContent('')
       setAddOrder('')
       setShowAddLessonFor(null)
       await loadModules()
@@ -133,6 +138,7 @@ function CourseDetail() {
     setEditTitle(lesson.title)
     setEditType(lesson.type)
     setEditUrl(lesson.url)
+    setEditContent(lesson.content || '')
     setEditOrder(lesson.order_index ?? '')
     clearError()
   }
@@ -142,6 +148,7 @@ function CourseDetail() {
     setEditTitle('')
     setEditType('video')
     setEditUrl('')
+    setEditContent('')
     setEditOrder('')
   }
 
@@ -154,6 +161,8 @@ function CourseDetail() {
         title: editTitle,
         type: editType,
         url: editUrl,
+        // Sending the field always lets clearing work (server maps '' -> NULL).
+        content: editContent,
         order_index: editOrder === '' ? undefined : Number(editOrder),
       })
       cancelEdit()
@@ -224,6 +233,20 @@ function CourseDetail() {
         <label className="text-sm font-medium" htmlFor={`${idPrefix}-url`}>URL</label>
         <input id={`${idPrefix}-url`} type="url" className={inputClass} value={addUrl} onChange={(e) => setAddUrl(e.target.value)} required />
       </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium" htmlFor={`${idPrefix}-content`}>
+          Lesson notes / test examples <span className="text-muted">(optional)</span>
+        </label>
+        <textarea
+          id={`${idPrefix}-content`}
+          className={`${inputClass} min-h-24 font-mono text-[13px]`}
+          rows={5}
+          placeholder={'Explain this lesson… attach test examples as fenced code blocks: ```js console.log(1) ```'}
+          value={addContent}
+          onChange={(e) => setAddContent(e.target.value)}
+        />
+      </div>
     </>
   )
 
@@ -248,6 +271,19 @@ function CourseDetail() {
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium" htmlFor={`edit-url-${lesson.id}`}>URL</label>
         <input id={`edit-url-${lesson.id}`} type="url" className={inputClass} value={editUrl} onChange={(e) => setEditUrl(e.target.value)} required />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium" htmlFor={`edit-content-${lesson.id}`}>
+          Lesson notes / test examples <span className="text-muted">(optional)</span>
+        </label>
+        <textarea
+          id={`edit-content-${lesson.id}`}
+          className={`${inputClass} min-h-24 font-mono text-[13px]`}
+          rows={5}
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+        />
       </div>
 
       <div className="flex items-center gap-2.5">

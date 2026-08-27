@@ -1,29 +1,36 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import LessonContent from './LessonContent'
 
 /**
- * Convert common video host URLs to embeddable player URLs so students can
- * watch without leaving the platform. Returns null when the URL cannot be
- * safely embedded (caller then offers an external-tab fallback).
+ * Parse a lesson URL into playback info:
+ *   { kind: 'yt', videoId }    → YouTube (Iframe API: auto-detect ENDED)
+ *   { kind: 'embed', src }     → other embeddable iframe (Vimeo etc.) — manual finish
+ *   null                       → cannot embed, external-tab fallback
  */
-function toEmbedUrl(url) {
+function parsePlayback(url) {
   try {
     const u = new URL(url)
     const host = u.hostname.replace(/^www\./, '')
-    if (host === 'youtube.com' || host === 'm.youtube.com') {
-      if (u.pathname === '/watch') {
-        const v = u.searchParams.get('v')
-        return v ? `https://www.youtube.com/embed/${v}` : null
+    if (
+      host === 'youtube.com' ||
+      host === 'm.youtube.com' ||
+      host === 'youtube-nocookie.com'
+    ) {
+      let id = null
+      if (u.pathname === '/watch') id = u.searchParams.get('v')
+      else if (/^\/shorts\/([^/]+)/.test(u.pathname)) {
+        id = u.pathname.match(/^\/shorts\/([^/]+)/)[1]
+      } else if (/^\/embed\/([^/?]+)/.test(u.pathname)) {
+        id = u.pathname.match(/^\/embed\/([^/?]+)/)[1]
       }
-      const shorts = u.pathname.match(/^\/shorts\/([^/]+)/)
-      if (shorts) return `https://www.youtube.com/embed/${shorts[1]}`
-      return null
+      return id ? { kind: 'yt', videoId: id } : null
     }
-    if (host === 'youtu.be') {
-      return `https://www.youtube.com/embed${u.pathname}`
+    if (host === 'youtu.be' && /^\/[\w-]+/.test(u.pathname)) {
+      return { kind: 'yt', videoId: u.pathname.slice(1) }
     }
     if (host === 'vimeo.com' && /^\/\d+/.test(u.pathname)) {
-      return `https://player.vimeo.com/video${u.pathname}`
+      return { kind: 'embed', src: `https://player.vimeo.com/video${u.pathname}` }
     }
     return null
   } catch {
@@ -31,14 +38,48 @@ function toEmbedUrl(url) {
   }
 }
 
-/**
- * Lightweight in-app lesson modal. Closes on Escape or backdrop click,
- * locks body scroll while open, and focuses its close button on mount.
- */
-export default function VideoModal({ url, title, onClose }) {
-  const closeRef = useRef(null)
-  const embedUrl = useMemo(() => toEmbedUrl(url), [url])
+let ytApiLoading = false // module-level: load the IFrame API once per session
 
+/**
+ * Lesson workspace modal.
+ *
+ * Contract with parent (MyEnrollment):
+ *   onRequestFinish() -> Promise<
+ *       { ok: true,  next: {...lessonFields} | null, end: boolean }
+ *     | { ok: false }>                     'end' means course fully completed.
+ * On success the modal either shows ✓ then swaps in the next lesson, or shows ✓
+ * briefly and closes itself when the whole course is done. Closing the modal
+ * via ESC/backdrop NEVER completes anything automatically.
+ */
+export default function VideoModal({
+  title,
+  url,
+  content,
+  isDone = false,
+  onRequestFinish,
+  onClose,
+}) {
+  const closeRef = useRef(null)
+  const playerHostRef = useRef(null)
+  const ytPlayerRef = useRef(null)
+
+  const [view, setView] = useState({ title, url, content, done: isDone })
+  const [phase, setPhase] = useState('idle') // idle | finishing | success
+  // null = undetermined yet; true = YouTube API ready (auto-finish); false = manual
+  const [autoDetect, setAutoDetect] = useState(null)
+
+  const playback = useMemo(() => parsePlayback(view.url), [view.url])
+
+  // Sync local view state whenever the parent opens a new lesson.
+  useEffect(() => {
+    setView({ title, url, content, done: isDone })
+    setPhase('idle')
+    setAutoDetect(null)
+    ytPlayerRef.current?.destroy?.()
+    ytPlayerRef.current = null
+  }, [title, url, content, isDone])
+
+  // Escape key + body scroll lock + initial focus.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') onClose()
@@ -53,60 +94,223 @@ export default function VideoModal({ url, title, onClose }) {
     }
   }, [onClose])
 
+  // Teardown the YT player whenever the view URL or unmount changes.
+  useEffect(
+    () => () => {
+      ytPlayerRef.current?.destroy?.()
+      ytPlayerRef.current = null
+    },
+    []
+  )
+
+  const finishFlow = async () => {
+    if (phase !== 'idle') return
+    setPhase('finishing')
+    let result
+    try {
+      result = await onRequestFinish()
+    } catch {
+      result = { ok: false }
+    }
+    if (!result || !result.ok) {
+      setPhase('idle') // parent already surfaced the error banner
+      return
+    }
+    setPhase('success')
+    setTimeout(() => {
+      if (result.next) {
+        setView({
+          title: result.next.title,
+          url: result.next.url,
+          content: result.next.content,
+          done: !!result.next.done,
+        })
+        setPhase('idle')
+      } else {
+        onClose()
+      }
+    }, 1400)
+  }
+
+  // ---- YouTube Iframe API bootstrap for the CURRENT video -----------------
+  const videoId = playback && playback.kind === 'yt' ? playback.videoId : null
+
+  useEffect(() => {
+    if (!videoId) return undefined
+    let disposed = false
+
+    const build = () => {
+      if (disposed || !window.YT || !playerHostRef.current) return
+      try {
+        ytPlayerRef.current = new window.YT.Player(playerHostRef.current, {
+          videoId,
+          playerVars: { rel: 0, modestbranding: 1 },
+          events: {
+            onReady: () => {
+              if (!disposed) setAutoDetect(true)
+            },
+            onStateChange: (e) => {
+              if (!disposed && e.data === window.YT.PlayerState.ENDED) {
+                finishFlow()
+              }
+            },
+          },
+        })
+      } catch {
+        if (!disposed) setAutoDetect(false)
+      }
+    }
+
+    if (window.YT && window.YT.Player) {
+      build()
+    } else {
+      const tag = document.getElementById('yt-iframe-api')
+      if (!tag) {
+        ytApiLoading = true
+        const s = document.createElement('script')
+        s.id = 'yt-iframe-api'
+        s.src = 'https://www.youtube.com/iframe_api'
+        const prevReady = window.onYouTubeIframeAPIReady
+        window.onYouTubeIframeAPIReady = () => {
+          prevReady?.()
+          build()
+        }
+        document.body.appendChild(s)
+      } else if (!ytApiLoading || window.YT) {
+        build()
+      } else {
+        // script exists but still loading: poll briefly
+        const t = setInterval(() => {
+          if (window.YT && window.YT.Player) {
+            clearInterval(t)
+            build()
+          }
+        }, 250)
+        setTimeout(() => clearInterval(t), 8000)
+      }
+      // Safety net: if the API never becomes ready (ad-blockers/offline),
+      // fall back to the manual button.
+      const failTimer = setTimeout(() => {
+        if (!disposed) setAutoDetect((prev) => (prev === null ? false : prev))
+      }, 7000)
+      return () => {
+        disposed = true
+        clearTimeout(failTimer)
+      }
+    }
+    const cleanup = () => {
+      disposed = true
+    }
+    return cleanup
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId])
+
+  const hasNotes = !!(view.content && view.content.trim())
+
   return createPortal(
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 lg:p-6 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={`Lesson video: ${title || ''}`}
+      aria-label={`Lesson: ${view.title || ''}`}
     >
       <div
-        className="w-full max-w-3xl rounded-2xl border border-[rgba(143,170,205,0.18)] bg-[rgba(13,22,35,0.97)] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
+        className="flex max-h-[92vh] w-full max-w-[min(94vw,1800px)] flex-col overflow-hidden rounded-2xl border border-[rgba(143,170,205,0.18)] bg-[rgba(13,22,35,0.97)] shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h3 className="truncate text-base font-bold text-white m-0">{title}</h3>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 px-4 pt-4 pb-2">
+          <h3 className="m-0 truncate text-base font-bold text-white">{view.title}</h3>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
-            aria-label="Close video"
+            aria-label="Close lesson"
             className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-full border border-[rgba(143,170,205,0.18)] bg-[rgba(15,27,40,0.8)] text-muted transition-colors hover:border-cyan-default/50 hover:text-cyan-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60"
           >
             ✕
           </button>
         </div>
 
-        {embedUrl ? (
-          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
-            <iframe
-              src={embedUrl}
-              title={title || 'Lesson video'}
-              className="h-full w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+        {/* Body: stacked on small screens, side-by-side on >= lg */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 lg:flex lg:gap-5 lg:overflow-hidden lg:px-5">
+          {/* Video column */}
+          <div className={hasNotes ? 'lg:w-[58%] lg:shrink-0' : 'w-full'}>
+          {/* Video zone */}
+          {playback && playback.kind === 'yt' && (
+            <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+              <div ref={playerHostRef} className="h-full w-full" />
+            </div>
+          )}
+          {playback && playback.kind === 'embed' && (
+            <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+              <iframe
+                src={playback.src}
+                title={view.title || 'Lesson video'}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+          {!playback && (
+            <div className="rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.6)] p-6 text-center">
+              <p className="m-0 mb-3 text-sm text-muted">
+                This video can’t be embedded here — open it in a new tab instead.
+              </p>
+              <a
+                href={view.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+              >
+                Open in new tab ↗
+              </a>
+            </div>
+          )}
           </div>
-        ) : (
-          <div className="rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.6)] p-6 text-center">
-            <p className="m-0 mb-3 text-sm text-muted">
-              This video can’t be embedded here — open it in a new tab instead.
-            </p>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer"
-            >
-              Open in new tab ↗
-            </a>
-          </div>
-        )}
 
-        <p className="mt-3 m-0 text-center text-xs text-muted">
-          Done watching? Close this and tick the circle next to the lesson.
-        </p>
+          {/* Notes / examples column */}
+          {hasNotes ? (
+            <section className="mt-4 shrink-0 rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] p-4 lg:mt-0 lg:min-w-0 lg:flex-1 lg:self-stretch lg:overflow-y-auto lg:border-l-2 lg:border-l-cyan-default/15">
+              <p className="eyebrow m-0 mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-default">
+                📝 Lesson notes &amp; examples
+              </p>
+              <LessonContent content={view.content} />
+            </section>
+          ) : null}
+        </div>
+
+        {/* Sticky action row */}
+        <div className="flex items-center justify-between gap-4 border-t border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.85)] px-4 py-3">
+          <span className="text-xs text-muted">
+            {phase === 'success'
+              ? '✓ Completed!'
+              : phase === 'finishing'
+                ? 'Saving…'
+                : autoDetect === true
+                  ? 'Auto-completes when the video ends'
+                  : 'Finished watching? Mark it complete below.'}
+          </span>
+          {view.done ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-green-default/25 bg-green-soft px-3 py-1.5 text-xs font-semibold text-green-default">
+              ✓ Completed
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (phase !== 'idle') return
+                finishFlow()
+              }}
+              disabled={phase !== 'idle'}
+              className="primary-btn inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 no-underline rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong px-5 py-2.5 font-bold text-[#031320] shadow-[0_6px_18px_rgba(13,190,255,0.22)] transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60"
+            >
+              {phase === 'finishing' ? 'Saving…' : phase === 'success' ? '✓ Done' : '✓ Complete & continue'}
+            </button>
+          )}
+        </div>
       </div>
     </div>,
     document.body

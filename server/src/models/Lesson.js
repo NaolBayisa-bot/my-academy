@@ -35,6 +35,13 @@ const Lesson = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    // Optional plain-text notes / test examples shown to students below the
+    // video player. Supports lightweight fenced code blocks (```lang ... ```)
+    // which the client renders as <pre> blocks.
+    content: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     order_index: {
       type: DataTypes.INTEGER,
       allowNull: true,

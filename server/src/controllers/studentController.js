@@ -148,7 +148,7 @@ exports.getMyEnrollment = async (req, res) => {
                 {
                   model: Lesson,
                   as: 'lessons',
-                  attributes: ['id', 'title', 'type', 'url', 'order_index'],
+                  attributes: ['id', 'title', 'type', 'url', 'content', 'order_index'],
                   separate: true,
                   order: [['order_index', 'ASC']],
                 },

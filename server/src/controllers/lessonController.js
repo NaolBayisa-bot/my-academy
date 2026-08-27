@@ -48,7 +48,7 @@ async function authorizeModuleAccess(req, res, moduleId) {
 //    `category_id` matches their own. A mismatch yields 403.
 exports.createLesson = async (req, res, next) => {
   const { courseId, moduleId } = req.params;
-  const { title, type, url, order_index } = req.body;
+  const { title, type, url, order_index, content } = req.body;
 
   try {
     // Re-fetch the authenticated user so we can read the real `role` and
@@ -91,6 +91,11 @@ exports.createLesson = async (req, res, next) => {
       type,
       url,
       order_index,
+      // Optional lesson notes / examples (empty -> NULL).
+      content:
+        typeof content === 'string' && content.trim() !== ''
+          ? content
+          : null,
     });
 
     return res.status(201).json({
@@ -167,7 +172,7 @@ exports.getLessonsByCourse = async (req, res) => {
 //    the body, the *new* module's course category must also match (403).
 exports.updateLesson = async (req, res) => {
   const { id } = req.params;
-  const { title, type, url, order_index, module_id } = req.body;
+  const { title, type, url, order_index, module_id, content } = req.body;
 
   try {
     const lesson = await Lesson.findByPk(id);
@@ -192,6 +197,10 @@ exports.updateLesson = async (req, res) => {
     if (url !== undefined) updateData.url = url;
     if (order_index !== undefined) updateData.order_index = order_index;
     if (module_id !== undefined) updateData.module_id = module_id;
+    if (content !== undefined) {
+      updateData.content =
+        typeof content === 'string' && content.trim() !== '' ? content : null;
+    }
 
     await lesson.update(updateData);
 
