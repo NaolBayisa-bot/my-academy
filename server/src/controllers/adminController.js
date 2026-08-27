@@ -1,4 +1,4 @@
-const { User, Category, Course, Enrollment, Lesson, LessonProgress, Post, sequelize } = require('../models');
+const { User, Category, Course, Enrollment, Lesson, LessonProgress, Module, Post, sequelize } = require('../models');
 
 // Strip sensitive fields from a user instance before sending it in a response.
 const serializeUser = (user) => {
@@ -588,7 +588,17 @@ exports.getCategoryStats = async (req, res) => {
     );
     const totalCourses = courses.length;
     const totalLessons = courseIds.length
-      ? await Lesson.count({ where: { course_id: courseIds } })
+      ? await Lesson.count({
+          // Lessons belong to Modules (not directly to Courses) after the
+          // Course -> Module -> Lesson refactor, so count via the association.
+          include: [
+            {
+              model: Module,
+              as: 'module',
+              where: { course_id: courseIds },
+            },
+          ],
+        })
       : 0;
 
     const enrollments = courseIds.length

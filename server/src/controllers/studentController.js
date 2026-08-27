@@ -1,4 +1,5 @@
 const { User, Category, Enrollment, Course, Module, Lesson, LessonProgress } = require('../models');
+const { Op } = require('sequelize');
 
 // Strip sensitive fields from a user instance before sending it in a response.
 const serializeUser = (user) => {
@@ -86,8 +87,21 @@ exports.getMyCategoryCourses = async (req, res) => {
       });
     }
 
+    // Exclude courses the student is already enrolled in (any status —
+    // pending, in_progress, or completed) so that the "Available" count
+    // reflects only courses they can actually enroll in.
+    const enrolledCourseIds = await Enrollment.findAll({
+      where: { student_id: student.id },
+      attributes: ['course_id'],
+    }).then((rows) => rows.map((row) => row.course_id));
+
     const courses = await Course.findAll({
-      where: { category_id: student.category_id },
+      where: {
+        category_id: student.category_id,
+        ...(enrolledCourseIds.length > 0 && {
+          id: { [Op.notIn]: enrolledCourseIds },
+        }),
+      },
     });
 
     return res.status(200).json({ courses });

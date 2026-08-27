@@ -19,7 +19,8 @@ router.post(
 );
 
 // GET /api/students/my-category-courses
-// Returns all courses in the student's own category.
+// Returns courses in the student's own category that they have NOT yet
+// enrolled in (excludes pending / in_progress / completed / rejected).
 router.get(
   '/my-category-courses',
   authenticate,
