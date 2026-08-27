@@ -49,7 +49,7 @@ if (Course && Category && User) {
 if (Module && Course) {
   // A Module belongs to a Course (course_id -> Courses.id).
   // Accessible as module.course.
-  Module.belongsTo(Course, { as: 'course', foreignKey: 'course_id' });
+  Module.belongsTo(Course, { as: 'course', foreignKey: 'course_id', onDelete: 'CASCADE' });
 
   // A Course has many Modules. Accessible as course.modules.
   Course.hasMany(Module, { as: 'modules', foreignKey: 'course_id' });
@@ -58,10 +58,12 @@ if (Module && Course) {
 if (Lesson && Module) {
   // A Lesson belongs to a Module (module_id -> Modules.id).
   // Accessible as lesson.module.
-  Lesson.belongsTo(Module, { as: 'module', foreignKey: 'module_id' });
+  Lesson.belongsTo(Module, { as: 'module', foreignKey: 'module_id', onDelete: 'CASCADE' });
 
   // A Module has many Lessons. Accessible as module.lessons.
-  Module.hasMany(Lesson, { as: 'lessons', foreignKey: 'module_id' });
+  // onDelete: 'CASCADE' on the belongsTo side handles the DB-level
+  // cascade when a module is destroyed.
+  Module.hasMany(Lesson, { as: 'lessons', foreignKey: 'module_id', onDelete: 'CASCADE' });
 }
 
 if (Enrollment && User && Course) {
@@ -79,19 +81,21 @@ if (Enrollment && User && Course) {
 
 if (LessonProgress && Enrollment && Lesson) {
   // A LessonProgress belongs to an Enrollment and a Lesson.
-  LessonProgress.belongsTo(Enrollment, { foreignKey: 'enrollment_id' });
-  LessonProgress.belongsTo(Lesson, { foreignKey: 'lesson_id' });
+  LessonProgress.belongsTo(Enrollment, { foreignKey: 'enrollment_id', onDelete: 'CASCADE' });
+  LessonProgress.belongsTo(Lesson, { foreignKey: 'lesson_id', onDelete: 'CASCADE' });
 
   // An Enrollment has many LessonProgresses.
   Enrollment.hasMany(LessonProgress, {
     as: 'lessonProgresses',
     foreignKey: 'enrollment_id',
+    onDelete: 'CASCADE',
   });
 
   // A Lesson has many LessonProgresses.
   Lesson.hasMany(LessonProgress, {
     as: 'lessonProgresses',
     foreignKey: 'lesson_id',
+    onDelete: 'CASCADE',
   });
 }
 

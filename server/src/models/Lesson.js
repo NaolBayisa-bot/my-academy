@@ -14,9 +14,13 @@ const Lesson = sequelize.define(
       allowNull: false,
       // Foreign key to Modules.id (association defined in models/index.js).
       // A lesson always lives inside a module of a course.
+      // onDelete: 'CASCADE' keeps this consistent with the migration script
+      // (migrate-lessons-to-modules.js) and the moduleController's expectation
+      // that deleting a module also deletes its lessons.
       references: {
         model: 'Modules',
         key: 'id',
+        onDelete: 'CASCADE',
       },
     },
     title: {

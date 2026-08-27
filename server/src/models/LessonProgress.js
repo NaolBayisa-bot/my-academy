@@ -13,18 +13,23 @@ const LessonProgress = sequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
       // Foreign key to Enrollments.id (association defined in models/index.js).
+      // onDelete: 'CASCADE' so removing an enrollment clears its progress rows.
       references: {
         model: 'Enrollments',
         key: 'id',
+        onDelete: 'CASCADE',
       },
     },
     lesson_id: {
       type: DataTypes.UUID,
       allowNull: false,
       // Foreign key to Lessons.id (association defined in models/index.js).
+      // onDelete: 'CASCADE' so removing a lesson clears its progress rows,
+      // which in turn lets the Module -> Lesson cascade work end-to-end.
       references: {
         model: 'Lessons',
         key: 'id',
+        onDelete: 'CASCADE',
       },
     },
     completed_at: {

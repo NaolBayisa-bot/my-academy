@@ -14,9 +14,12 @@ const Module = sequelize.define(
       type: DataTypes.UUID,
       allowNull: false,
       // Foreign key to Courses.id (association defined in models/index.js).
+      // onDelete: 'CASCADE' so removing a course clears its modules (and
+      // transitively their lessons and lesson-progress rows).
       references: {
         model: 'Courses',
         key: 'id',
+        onDelete: 'CASCADE',
       },
     },
     title: {
