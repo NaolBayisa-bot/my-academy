@@ -1,4 +1,4 @@
-const { User, Category, Enrollment, Course, Module, Lesson, LessonProgress } = require('../models');
+const { User, Category, Enrollment, Course, Module, Lesson, LessonProgress, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // Strip sensitive fields from a user instance before sending it in a response.
@@ -104,7 +104,39 @@ exports.getMyCategoryCourses = async (req, res) => {
       },
     });
 
-    return res.status(200).json({ courses });
+    // Per-course lesson count, summed across that course's modules. Two small
+    // grouped queries (modules, then lessons by module) — no N+1 per course.
+    const courseIds = courses.map((c) => c.id);
+    const lessonCounts = {};
+    if (courseIds.length) {
+      const modules = await Module.findAll({
+        where: { course_id: courseIds },
+        attributes: ['id', 'course_id'],
+      });
+      const moduleToCourse = new Map(modules.map((m) => [m.id, m.course_id]));
+      const moduleIds = modules.map((m) => m.id);
+      if (moduleIds.length) {
+        const lessonRows = await Lesson.findAll({
+          where: { module_id: moduleIds },
+          attributes: [
+            'module_id',
+            [sequelize.fn('COUNT', sequelize.col('module_id')), 'count'],
+          ],
+          group: ['module_id'],
+        });
+        for (const row of lessonRows) {
+          const courseId = moduleToCourse.get(row.module_id);
+          lessonCounts[courseId] =
+            (lessonCounts[courseId] || 0) + Number(row.get('count'));
+        }
+      }
+    }
+
+    return res
+      .status(200)
+      .json({
+        courses: courses.map((c) => ({ ...c.toJSON(), lessonsCount: lessonCounts[c.id] || 0 })),
+      });
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);
@@ -210,7 +242,57 @@ exports.getMyHistory = async (req, res) => {
       order: [['completed_at', 'DESC']],
     });
 
-    return res.status(200).json({ enrollments });
+    // Per-course lesson count for the history cards ("🎓 X lessons"). Uses the
+    // same joined Module->Lesson count as the catalog endpoint, minus N+1.
+    const courses = enrollments.map((e) => e.course).filter(Boolean);
+    const courseIds = courses.map((c) => c.id);
+    const lessonCounts = {};
+    if (courseIds.length) {
+      const modules = await Module.findAll({
+        where: { course_id: courseIds },
+        attributes: ['id', 'course_id'],
+      });
+      const moduleToCourse = new Map(modules.map((m) => [m.id, m.course_id]));
+      const moduleIds = modules.map((m) => m.id);
+      if (moduleIds.length) {
+        const lessonRows = await Lesson.findAll({
+          where: { module_id: moduleIds },
+          attributes: [
+            'module_id',
+            [sequelize.fn('COUNT', sequelize.col('module_id')), 'count'],
+          ],
+          group: ['module_id'],
+        });
+        for (const row of lessonRows) {
+          const courseId = moduleToCourse.get(row.module_id);
+          lessonCounts[courseId] =
+            (lessonCounts[courseId] || 0) + Number(row.get('count'));
+        }
+      }
+    }
+
+    // Shape output: normalize the nested course key and attach lessonsCount.
+    const shaped = enrollments.map((e) => {
+      const course = e.course || e.Course || null;
+      return {
+        id: e.id,
+        enrolled_at: e.enrolled_at,
+        completed_at: e.completed_at,
+        course: course
+          ? {
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              category: course.category
+                ? { id: course.category.id, name: course.category.name }
+                : null,
+              lessonsCount: lessonCounts[course.id] || 0,
+            }
+          : null,
+      };
+    });
+
+    return res.status(200).json({ enrollments: shaped });
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);
