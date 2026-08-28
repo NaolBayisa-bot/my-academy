@@ -6,9 +6,10 @@ import { useAuth } from '../../context/AuthContext'
 //
 //  - category_admin creates posts scoped to their own category — the
 //    `category_id` is attached automatically from the authenticated user.
-//  - super_admin additionally gets a posting-scope toggle: "Post to my
-//    category" (category_id = their category) or "Post globally to all
-//    users" (category_id = null). A super_admin sees all posts.
+//  - super_admin additionally gets a posting-scope selector: post globally
+//    to all users (category_id = null) or into any specific category they
+//    pick from the dropdown (the backend already authorizes both). A
+//    super_admin sees all posts.
 //
 // GET /api/posts is scoped by the server per role (a category_admin sees
 // their category + global posts; a super_admin sees everything) and is
@@ -27,8 +28,9 @@ function Posts() {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // super_admin-only posting-scope toggle (defaults to the admin's category).
-  const [postToMyCategory, setPostToMyCategory] = useState(true)
+  // super_admin-only posting scope: '' = global (category_id null), otherwise a category UUID.
+  const [postScope, setPostScope] = useState('')
+  const [categories, setCategories] = useState([])
 
   // Per-post delete in-flight state.
   const [deletingId, setDeletingId] = useState(null)
@@ -62,14 +64,32 @@ function Posts() {
     }
   }, [])
 
+  // Category list: powers the super_admin scope dropdown and the scope chip
+  // on every post card (public endpoint, safe for both roles).
+  useEffect(() => {
+    let cancelled = false
+    api
+      .get('/categories')
+      .then((res) => {
+        if (!cancelled) setCategories(res.data.categories || [])
+      })
+      .catch(() => {
+        /* chips just show a fallback label; posting still works */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     clearError()
     setSubmitting(true)
     try {
-      // `category_id` depends on role + (super_admin) the toggle.
+      // `category_id` depends on role + (super_admin) the selected scope:
+      // empty string = global (null), otherwise the picked category UUID.
       const categoryId = isSuperAdmin
-        ? (postToMyCategory ? user?.category_id : null)
+        ? (postScope || null)
         : user?.category_id
 
       await api.post('/posts', {
@@ -155,27 +175,28 @@ function Posts() {
 
         {isSuperAdmin && (
           <div className="field flex flex-col gap-1.5">
-            <label>Scope</label>
-            <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
-              <label className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                <input
-                  type="radio"
-                  name="scope"
-                  checked={postToMyCategory}
-                  onChange={() => setPostToMyCategory(true)}
-                />{' '}
-                Post to my category
-              </label>
-              <label className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                <input
-                  type="radio"
-                  name="scope"
-                  checked={!postToMyCategory}
-                  onChange={() => setPostToMyCategory(false)}
-                />{' '}
-                Post globally
-              </label>
-            </div>
+            <label htmlFor="post-scope">Posting scope</label>
+            <select
+              id="post-scope"
+              value={postScope}
+              onChange={(e) => setPostScope(e.target.value)}
+              className="text-sm bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.18)] rounded-xl px-3 py-2.5 outline-none focus:border-cyan-default/50 cursor-pointer"
+            >
+              <option value="">🌐 Global — visible to all users</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted m-0">
+              This post will be visible to{' '}
+              <span className="font-semibold text-cyan-default">
+                {postScope
+                  ? `the ${categories.find((c) => c.id === postScope)?.name || 'selected category'} only`
+                  : 'all users across every category'}
+              </span>.
+            </p>
           </div>
         )}
 
@@ -197,7 +218,13 @@ function Posts() {
                   <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Update</p>
                   <h3>{post.title}</h3>
                 </div>
-                {post.category_id === null && <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">Global</span>}
+                {post.category_id === null ? (
+                  <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">🌐 Global</span>
+                ) : (
+                  <span className="chip inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-soft border border-cyan-default/25 text-cyan-default max-w-[160px] truncate">
+                    {categories.find((c) => c.id === post.category_id)?.name || 'Category post'}
+                  </span>
+                )}
               </div>
 
               <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>

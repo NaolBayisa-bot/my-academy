@@ -323,6 +323,36 @@ exports.getOverview = async (req, res) => {
       });
     }
 
+    // Courses per category (for the super_admin dashboard "category explorer"):
+    // every course with its creation date and enrollment count, grouped by
+    // category. One grouped query for counts — no N+1.
+    const allCourses = await Course.findAll({
+      attributes: ['id', 'title', 'createdAt', 'category_id'],
+      order: [['createdAt', 'DESC']],
+    });
+    const enrollCountRows = await Enrollment.findAll({
+      attributes: [
+        'course_id',
+        [sequelize.fn('COUNT', sequelize.col('course_id')), 'count'],
+      ],
+      group: ['course_id'],
+    });
+    const enrollCountByCourse = new Map(
+      enrollCountRows.map((r) => [r.course_id, Number(r.get('count'))])
+    );
+    const coursesPerCategory = categories.map((category) => ({
+      category_id: category.id,
+      name: category.name,
+      courses: allCourses
+        .filter((c) => c.category_id === category.id)
+        .map((c) => ({
+          id: c.id,
+          title: c.title,
+          createdAt: c.createdAt,
+          enrollments: enrollCountByCourse.get(c.id) || 0,
+        })),
+    }));
+
     // Global enrollment status distribution.
     const statusRows = await Enrollment.findAll({
       attributes: [
@@ -367,6 +397,7 @@ exports.getOverview = async (req, res) => {
       enrollmentsByStatus,
       completionsPerCategory,
       studentsPerCategory,
+      coursesPerCategory,
       recentStudents: recentStudents.map((u) => ({
         id: u.id,
         name: u.name,
