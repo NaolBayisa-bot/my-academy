@@ -15,13 +15,43 @@ const serializeUser = (user) => {
 const serializeStudent = (student) => {
   const publicStudent = serializeUser(student);
 
-  // Sequelize attaches the nested Course on each enrollment under the key
-  // `Course` (capital "C") because the Enrollment->Course association has no
-  // alias. Normalize every enrollment to a lowercase `course` key so the shape
-  // is consistent for both the `enrollments` array and `currentEnrollment`.
+  // Shape each enrollment for API output:
+  //  - normalizes the nested course key (with the aliased association
+  //    Sequelize emits `course`; accept the legacy capital-C key too)
+  //  - adds a computed lesson-progress summary (lessonsDone / lessonsTotal /
+  //    progressPct) when the query included lessonProgresses, and strips the
+  //    raw heavy arrays (module/lesson trees, progress rows) from the output
   const enrollments = (publicStudent.enrollments || []).slice().map((enrollment) => {
-    const { Course, ...rest } = enrollment;
-    return { ...rest, course: Course || null };
+    const rawCourse = enrollment.course || enrollment.Course || null;
+    const course = rawCourse ? { id: rawCourse.id, title: rawCourse.title } : null;
+
+    // When the query did not include lessonProgresses (e.g. the super_admin
+    // "all students" listing) the summary degrades gracefully to nulls.
+    const hasProgress = Array.isArray(enrollment.lessonProgresses);
+    const lessonsDone = hasProgress ? enrollment.lessonProgresses.length : null;
+    const lessonsTotal = hasProgress
+      ? (rawCourse?.modules || []).reduce(
+          (sum, mod) => sum + (mod.lessons ? mod.lessons.length : 0),
+          0
+        )
+      : null;
+    const progressPct = hasProgress
+      ? lessonsTotal > 0
+        ? Math.round((lessonsDone / lessonsTotal) * 100)
+        : 0
+      : null;
+
+    return {
+      id: enrollment.id,
+      course_id: enrollment.course_id,
+      status: enrollment.status,
+      enrolled_at: enrollment.enrolled_at,
+      completed_at: enrollment.completed_at,
+      course,
+      lessonsDone,
+      lessonsTotal,
+      progressPct,
+    };
   });
 
   // `currentEnrollment` is the most recent enrollment (by `enrolled_at`), or
@@ -137,6 +167,32 @@ exports.getStudentsByCategory = async (req, res) => {
               model: Course,
               as: 'course',
               attributes: ['id', 'title'],
+              // Lesson tree (ids only) is needed to compute the total lesson
+              // count per enrollment; it is stripped before serialization.
+              include: [
+                {
+                  model: Module,
+                  as: 'modules',
+                  attributes: ['id'],
+                  required: false,
+                  include: [
+                    {
+                      model: Lesson,
+                      as: 'lessons',
+                      attributes: ['id'],
+                      required: false,
+                    },
+                  ],
+                },
+              ],
+            },
+            // Completed-lesson rows for the requesting student — used to
+            // compute lessonsDone / progressPct in serializeStudent.
+            {
+              model: LessonProgress,
+              as: 'lessonProgresses',
+              attributes: ['lesson_id', 'completed_at'],
+              required: false,
             },
           ],
         },

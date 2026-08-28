@@ -7,23 +7,23 @@ import Footer from './Footer'
 const NAV_LINKS = {
   student: [
     { label: 'Dashboard', to: '/student/dashboard', icon: '◫' },
-    { label: 'Browse Courses', to: '/student/browse', icon: '◌' },
-    { label: 'My Enrollment', to: '/student/my-enrollment', icon: '▣' },
+    { label: 'Browse Courses', to: '/student/browse', icon: '📚' },
+    { label: 'My Enrollment', to: '/student/my-enrollment', icon: '📝' },
     { label: 'History', to: '/student/history', icon: '◍' },
   ],
   category_admin: [
     { label: 'Dashboard', to: '/admin/dashboard', icon: '◫' },
-    { label: 'My Students', to: '/admin/students', icon: '◌' },
-    { label: 'Courses', to: '/admin/courses', icon: '▣' },
-    { label: 'Enrollment Requests', to: '/admin/enrollments', icon: '◍' },
-    { label: 'Posts', to: '/admin/posts', icon: '✦' },
+    { label: 'My Students', to: '/admin/students', icon: '👥' },
+    { label: 'Courses', to: '/admin/courses', icon: '📚' },
+    { label: 'Enrollment Requests', to: '/admin/enrollments', icon: '📝' },
+    { label: 'Posts', to: '/admin/posts', icon: '📢' },
   ],
   super_admin: [
     { label: 'Dashboard', to: '/super-admin/dashboard', icon: '◫' },
     { label: 'Assign Admins', to: '/super-admin/assign-admins', icon: '▣' },
-    { label: 'All Students', to: '/super-admin/students', icon: '◌' },
-    { label: 'Enrollment Requests', to: '/super-admin/enrollments', icon: '◍' },
-    { label: 'Posts', to: '/super-admin/posts', icon: '✦' },
+    { label: 'All Students', to: '/super-admin/students', icon: '👥' },
+    { label: 'Enrollment Requests', to: '/super-admin/enrollments', icon: '📝' },
+    { label: 'Posts', to: '/super-admin/posts', icon: '📢' },
   ],
 }
 
@@ -85,9 +85,8 @@ function Layout({ children }) {
             sticky, so it stays in view while the main content scrolls.
             Only its width transitions — the navbar above is untouched. */}
         <aside
-          className={`dashboard-sidebar sticky top-16 self-start h-[calc(100vh-4rem)] shrink-0 flex flex-col border-r border-[rgba(143,170,205,0.16)] bg-[rgba(5,15,29,0.9)] transition-[width] duration-300 ease-in-out overflow-hidden ${
-            collapsed ? 'w-[72px]' : 'w-[240px]'
-          }`}
+          className={`dashboard-sidebar sticky top-16 self-start h-[calc(100vh-4rem)] shrink-0 flex flex-col border-r border-[rgba(143,170,205,0.16)] bg-[rgba(5,15,29,0.9)] transition-[width] duration-300 ease-in-out overflow-hidden ${collapsed ? 'w-[72px]' : 'w-[240px]'
+            }`}
         >
           <nav className="sidebar-nav flex flex-col gap-1.5 p-3 pt-4" aria-label="Main navigation">
             {links.map((link) => (
@@ -95,8 +94,7 @@ function Layout({ children }) {
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 no-underline rounded-lg px-3 py-2.5 text-sm whitespace-nowrap text-muted transition-colors duration-200 hover:bg-[rgba(56,215,255,0.08)] hover:text-[var(--text)] ${
-                    isActive ? 'active bg-[rgba(56,215,255,0.12)] text-cyan-default' : ''
+                  `flex items-center gap-3 no-underline rounded-lg px-3 py-2.5 text-sm whitespace-nowrap text-muted transition-colors duration-200 hover:bg-[rgba(56,215,255,0.08)] hover:text-[var(--text)] ${isActive ? 'active bg-[rgba(56,215,255,0.12)] text-cyan-default' : ''
                   }`
                 }
                 title={link.label}
