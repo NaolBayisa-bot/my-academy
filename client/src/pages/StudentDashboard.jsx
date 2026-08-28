@@ -202,6 +202,10 @@ function StudentDashboard() {
   const active = stats?.activeEnrollment
   const hasActive = active && active.status === 'in_progress'
   const isPending = active && active.status === 'pending'
+  // Eligible to switch category when there's no pending / in_progress work
+  // (i.e. completed, rejected, or no active enrollment). The backend enforces
+  // the same rule server-side on POST /students/select-category.
+  const canChangeCategory = !hasActive && !isPending
   const newCount = newCourseIds.length
   const firstName = (user.name || 'Student').split(' ')[0]
 
@@ -222,12 +226,22 @@ function StudentDashboard() {
                 : 'Pick a course below and start learning today.'}
           </p>
         </div>
-        <Link
-          to={hasActive ? '/student/my-enrollment' : '/student/browse'}
-          className="inline-flex items-center gap-2 no-underline font-semibold text-sm px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong text-[#021522] hover:shadow-[0_0_24px_rgba(56,215,255,0.35)] transition-shadow duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default"
-        >
-          {hasActive ? '▶ Continue learning' : 'Explore courses'}
-        </Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            to={hasActive ? '/student/my-enrollment' : '/student/browse'}
+            className="inline-flex items-center gap-2 no-underline font-semibold text-sm px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong text-[#021522] hover:shadow-[0_0_24px_rgba(56,215,255,0.35)] transition-shadow duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default"
+          >
+            {hasActive ? '▶ Continue learning' : 'Explore courses'}
+          </Link>
+          {canChangeCategory && (
+            <Link
+              to="/student/select-category?change=1"
+              className="inline-flex items-center gap-1.5 no-underline font-medium text-xs px-4 py-2 rounded-xl border border-[rgba(143,170,205,0.18)] bg-[rgba(13,22,35,0.6)] text-muted hover:border-cyan-default/40 hover:text-cyan-default transition-all duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default"
+            >
+              ⚙️ Change category
+            </Link>
+          )}
+        </div>
       </header>
 
       {/* ---- Slim, dismissible new-course notification ---- */}
