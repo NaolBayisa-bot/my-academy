@@ -1,0 +1,9 @@
+'use strict';
+
+// sequelize-cli configuration paths.
+//   - config        -> connection config (reads DATABASE_URL via dotenv)
+//   - migrations    -> where versioned migration files live
+module.exports = {
+  config: './config/config.js',
+  'migrations-path': './migrations',
+};

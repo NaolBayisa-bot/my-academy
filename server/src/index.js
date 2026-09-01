@@ -72,13 +72,11 @@ const startServer = async () => {
   // Test the database connection (with a bounded retry for cold starts)
   await waitForDb();
 
-  // Sync models with the database (creates tables if they don't exist yet)
-  try {
-    await sequelize.sync();
-    console.log('Database synced.');
-  } catch (error) {
-    console.error('Unable to sync the database:', error.message);
-  }
+  // No sequelize.sync() here: the schema is owned by migrations. Ensure the
+  // latest schema is applied by running `npm run db:migrate` (from server/)
+  // before starting the app, e.g. in CI/CD or the container entrypoint.
+  // eslint-disable-next-line no-console
+  console.log('Schema is managed by migrations (npm run db:migrate). Skipping runtime sync.');
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

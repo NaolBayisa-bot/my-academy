@@ -7,8 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js",
     "seed": "node src/config/seed.js",
-    "migrate:modules": "node src/scripts/migrate-lessons-to-modules.js",
-    "migrate:lesson-content": "node src/scripts/migrate-lesson-content.js"
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:status": "sequelize-cli db:migrate:status",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
+    "migration:generate": "sequelize-cli migration:generate"
   },
   "keywords": [],
   "author": "",

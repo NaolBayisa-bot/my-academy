@@ -14,8 +14,8 @@ async function seed() {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
 
-    await sequelize.sync();
-    console.log('Database synced.');
+    // No sequelize.sync() here: the schema is owned by migrations
+    // (npm run db:migrate). Tables are assumed to exist already.
 
     for (const cat of categories) {
       const [record, created] = await Category.findOrCreate({

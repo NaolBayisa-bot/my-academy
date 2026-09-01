@@ -7,6 +7,12 @@ services:
       POSTGRES_USER: lms
       POSTGRES_PASSWORD: lms_pass
       POSTGRES_DB: academy_lms
+    # Publish Postgres on the host so local tooling (npm run seed / db:migrate)
+    # can reach it via localhost:5432. The server service keeps using the
+    # internal `db:5432` host from the compose network, so this mapping does
+    # not affect container-to-container traffic.
+    ports:
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
