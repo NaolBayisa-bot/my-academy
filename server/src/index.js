@@ -41,14 +41,36 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
-  // Test the database connection
-  try {
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
-  } catch (error) {
-    console.error('Unable to connect to the database:', error.message);
+// Give Postgres a brief window to accept connections on first `docker compose up`.
+// `depends_on: service_healthy` already gates the container start, but a tiny
+// startup race still happens occasionally; retrying turns that into a non-event
+// instead of a one-shot failure that silently skips schema sync.
+const RETRY_DELAY_MS = 2000;
+const MAX_ATTEMPTS = 15;
+
+const waitForDb = async () => {
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await sequelize.authenticate();
+      console.log('Database connection established successfully.');
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn(
+          `DB not ready (attempt ${attempt}/${MAX_ATTEMPTS}): ${error.message}. Retrying in ${RETRY_DELAY_MS}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
   }
+  console.error('Unable to connect to the database:', lastError?.message);
+};
+
+const startServer = async () => {
+  // Test the database connection (with a bounded retry for cold starts)
+  await waitForDb();
 
   // Sync models with the database (creates tables if they don't exist yet)
   try {
