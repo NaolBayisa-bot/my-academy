@@ -47,6 +47,59 @@ exports.markLessonComplete = async (req, res) => {
       });
     }
 
+    // Sequencing guard: a lesson may only be completed if it is the first
+    // incomplete lesson in optional ("skip"/review) order. Lessons are ordered
+    // by module.order_index then lesson.order_index (nulls last), matching the
+    // order the curriculum is displayed to the student. This makes the
+    // unlock-by-progress behavior enforceable server-side, not just cosmetic.
+    const courseModules = await Module.findAll({
+      where: { course_id: enrollment.course_id },
+      order: [
+        ['order_index', 'ASC'],
+        ['createdAt', 'ASC'],
+      ],
+      attributes: ['id', 'order_index'],
+    });
+
+    // Gather the lessons in the exact order they are shown to the student:
+    // module order_index first, then each module's lessons by order_index.
+    // Querying per module keeps the sequencing aligned with `getMyEnrollment`
+    // rather than relying on UUID ordering of the lessons table.
+    const orderedLessonIds = [];
+    for (const mod of courseModules) {
+      const moduleLessons = await Lesson.findAll({
+        where: { module_id: mod.id },
+        order: [
+          ['order_index', 'ASC'],
+          ['createdAt', 'ASC'],
+        ],
+        attributes: ['id'],
+      });
+      for (const lesson of moduleLessons) {
+        orderedLessonIds.push(lesson.id);
+      }
+    }
+
+    const completedRecords = await LessonProgress.findAll({
+      where: { enrollment_id: enrollmentId },
+      attributes: ['lesson_id'],
+    });
+    const completedLessonIdSet = new Set(
+      completedRecords.map((r) => r.lesson_id)
+    );
+
+    // If we already completed everything, the sequencing guard is meaningless
+    // (nothing left to unlock), but new submissions are still idempotent or a
+    // 404; treat a completion beyond the set as allowed only when it is the
+    // next in line.
+    const nextLessonId =
+      orderedLessonIds.find((id) => !completedLessonIdSet.has(id)) || null;
+    if (nextLessonId && nextLessonId !== lessonId) {
+      return res.status(403).json({
+        error: 'Complete the previous lesson before moving on.',
+      });
+    }
+
     // Create the LessonProgress row.
     const lessonProgress = await LessonProgress.create({
       enrollment_id: enrollmentId,
