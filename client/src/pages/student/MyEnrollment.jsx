@@ -132,6 +132,13 @@ function MyEnrollment() {
     totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0
   const nextUp = flatLessons.find((l) => !completedIds.has(l.id)) || null
 
+  // Sequential unlock: a lesson is accessible only if it is already completed
+  // (allowed for review) or it is the current "next up" lesson. Everything
+  // later in the curriculum stays locked until the current one is completed.
+  const isLessonUnlocked = (lesson) =>
+    !!lesson &&
+    (completedIds.has(lesson.id) || lesson.id === nextUp?.id)
+
   // Reconcile: drop pending ids the server has confirmed, silently.
   useEffect(() => {
     setPendingComplete((prev) => {
@@ -502,15 +509,30 @@ function MyEnrollment() {
                 const modPct = modLessons.length
                   ? Math.round((modDone / modLessons.length) * 100)
                   : 0
-                const isOpen = !!expandedModules[module.id]
+                // A module is unlocked when one of its lessons is either
+                // completed or is the current "next up" lesson. Practically
+                // this unlocks the first module for a fresh enrollment and the
+                // following module once its predecessor's lessons are done.
+                const modUnlocked = modLessons.some((l) => isLessonUnlocked(l))
+                const isOpen = modUnlocked && !!expandedModules[module.id]
                 return (
                   <div key={module.id} className="mb-3 last:mb-0 rounded-xl border border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.45)] overflow-hidden">
                     <button
                       type="button"
                       aria-expanded={isOpen}
                       aria-controls={`module-body-${module.id}`}
-                      onClick={() => toggleModule(module.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3 cursor-pointer bg-transparent border-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-default/50"
+                      disabled={!modUnlocked}
+                      onClick={() => {
+                        if (modUnlocked) toggleModule(module.id)
+                      }}
+                      title={
+                        modUnlocked
+                          ? ''
+                          : 'Locked — complete the previous module first'
+                      }
+                      className={`w-full flex items-center gap-3 px-4 py-3 cursor-pointer bg-transparent border-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-default/50 ${
+                        modUnlocked ? '' : 'cursor-not-allowed opacity-70'
+                      }`}
                     >
                       <svg
                         viewBox="0 0 20 20"
@@ -520,9 +542,14 @@ function MyEnrollment() {
                       >
                         <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
                       </svg>
-                      <span className="flex-1 min-w-0 truncate text-sm font-bold text-cyan-default uppercase tracking-wide">
+                      <span className={`flex-1 min-w-0 truncate text-sm font-bold uppercase tracking-wide ${modUnlocked ? 'text-cyan-default' : 'text-muted'}`}>
                         {module.title}
                       </span>
+                      {!modUnlocked && (
+                        <span className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-muted" aria-hidden="true">
+                          🔒 Locked
+                        </span>
+                      )}
                       {modLessons.length > 0 && (
                         <span className="hidden sm:block w-24 h-1.5 rounded-full bg-[rgba(15,27,40,0.9)] overflow-hidden shrink-0" aria-hidden="true">
                           <span className="block h-full rounded-full bg-gradient-to-r from-cyan-default to-green-default transition-all duration-300" style={{ width: `${modPct}%` }} />
@@ -543,6 +570,7 @@ function MyEnrollment() {
                           const idx = runningIndex
                           const isDone = completedIds.has(lesson.id)
                           const busy = completingId === lesson.id && !isDone
+                          const locked = !isLessonUnlocked(lesson)
                           return (
                             <div
                               key={lesson.id}
@@ -550,24 +578,31 @@ function MyEnrollment() {
                               className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-200 ${
                                 isDone
                                   ? 'border-green-default/20 bg-[rgba(45,212,167,0.05)]'
-                                  : 'border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] hover:border-cyan-default/40'
+                                  : locked
+                                    ? 'border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] opacity-60'
+                                    : 'border-[rgba(143,170,205,0.12)] bg-[rgba(9,17,27,0.5)] hover:border-cyan-default/40'
                               } ${highlightId === lesson.id ? 'row-highlight' : ''}`}
                             >
                               <CheckCircle
                                 completed={isDone}
                                 busy={busy}
+                                disabled={locked}
                                 label={`${isDone ? 'Completed' : 'Mark complete'}: ${lesson.title}`}
                                 onClick={() => handleToggleComplete(lesson.id)}
                               />
                               <button
                                 type="button"
-                                onClick={() => openLesson(lesson)}
-                                className="flex min-w-0 flex-1 items-center gap-2.5 text-left cursor-pointer bg-transparent border-0 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/50 rounded"
+                                onClick={() => {
+                                  if (!locked) openLesson(lesson)
+                                }}
+                                disabled={locked}
+                                title={locked ? 'Locked — complete the previous lesson first' : undefined}
+                                className={`flex min-w-0 flex-1 items-center gap-2.5 text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/50 ${locked ? 'cursor-not-allowed bg-transparent border-0 p-0' : 'cursor-pointer bg-transparent border-0 p-0'}`}
                               >
-                                <span className="shrink-0 grid place-items-center h-5 w-5 rounded-md bg-[rgba(148,175,211,0.12)] text-[10px] font-bold text-muted tabular-nums" aria-hidden="true">
-                                  {idx}
+                                <span className={`shrink-0 grid place-items-center h-5 w-5 rounded-md text-[10px] font-bold text-muted tabular-nums ${locked ? 'bg-[rgba(148,175,211,0.08)]' : 'bg-[rgba(148,175,211,0.12)]'}`} aria-hidden="true">
+                                  {locked ? '🔒' : idx}
                                 </span>
-                                <span className={`min-w-0 truncate text-sm font-medium ${isDone ? 'text-muted line-through decoration-green-default/40' : 'text-white'}`}>
+                                <span className={`min-w-0 truncate text-sm font-medium ${isDone ? 'text-muted line-through decoration-green-default/40' : locked ? 'text-muted' : 'text-white'}`}>
                                   {lesson.title}
                                 </span>
                                 <span className="hidden md:inline shrink-0 text-[11px] font-medium text-muted border border-[rgba(143,170,205,0.18)] rounded-md px-1.5 py-0.5">
@@ -576,10 +611,17 @@ function MyEnrollment() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => openLesson(lesson)}
-                                className="secondary-btn shrink-0 inline-flex items-center justify-center gap-1.5 no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-4 py-2 rounded-xl text-sm hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60"
+                                onClick={() => {
+                                  if (!locked) openLesson(lesson)
+                                }}
+                                disabled={locked}
+                                className={`secondary-btn shrink-0 inline-flex items-center justify-center gap-1.5 no-underline font-semibold px-4 py-2 rounded-xl text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60 ${
+                                  locked
+                                    ? 'cursor-not-allowed border border-[rgba(143,170,205,0.15)] bg-[rgba(9,17,27,0.4)] text-muted opacity-70'
+                                    : 'cursor-pointer border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)]'
+                                }`}
                               >
-                                {lesson.type === 'video' ? 'Watch' : 'Get'}
+                                {locked ? '🔒 Locked' : lesson.type === 'video' ? 'Watch' : 'Get'}
                               </button>
                             </div>
                           )
