@@ -41,10 +41,10 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Give Postgres a brief window to accept connections on first `docker compose up`.
-// `depends_on: service_healthy` already gates the container start, but a tiny
-// startup race still happens occasionally; retrying turns that into a non-event
-// instead of a one-shot failure that silently skips schema sync.
+// Give Postgres a brief window to accept connections on startup.
+// A tiny startup race can occur if the DB service isn't fully ready; retrying
+// turns that into a non-event instead of a one-shot failure that silently
+// skips schema sync.
 const RETRY_DELAY_MS = 2000;
 const MAX_ATTEMPTS = 15;
 
