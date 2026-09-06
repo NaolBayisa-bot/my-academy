@@ -1,6 +1,22 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+
+// Fail fast: the app must never run in production with a missing or placeholder
+// JWT secret. The compose file requires JWT_SECRET, this guard is a second line
+// of defense for any other deployment path.
+const DEFAULT_JWT_SECRET = 'change_me_in_production';
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_JWT_SECRET)
+) {
+  // eslint-disable-next-line no-console
+  console.error(
+    'FATAL: JWT_SECRET must be set to a strong, non-default value in production.'
+  );
+  process.exit(1);
+}
+
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
