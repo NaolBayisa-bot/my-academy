@@ -30,7 +30,10 @@ function parsePlayback(url) {
       return { kind: 'yt', videoId: u.pathname.slice(1) }
     }
     if (host === 'vimeo.com' && /^\/\d+/.test(u.pathname)) {
-      return { kind: 'embed', src: `https://player.vimeo.com/video${u.pathname}` }
+      return {
+        kind: 'embed',
+        src: `https://player.vimeo.com/video${u.pathname}?api=1`,
+      }
     }
     return null
   } catch {
@@ -62,11 +65,16 @@ export default function VideoModal({
   const closeRef = useRef(null)
   const playerHostRef = useRef(null)
   const ytPlayerRef = useRef(null)
+  const vimeoPlayerRef = useRef(null)
+  const embedFrameRef = useRef(null)
+  const videoStartedRef = useRef(false)
 
   const [view, setView] = useState({ title, url, content, done: isDone })
   const [phase, setPhase] = useState('idle') // idle | finishing | success
   // null = undetermined yet; true = YouTube API ready (auto-finish); false = manual
   const [autoDetect, setAutoDetect] = useState(null)
+  // true once the current video has actually started playing (unlocks completion)
+  const [videoStarted, setVideoStarted] = useState(false)
 
   const playback = useMemo(() => parsePlayback(view.url), [view.url])
 
@@ -75,6 +83,8 @@ export default function VideoModal({
     setView({ title, url, content, done: isDone })
     setPhase('idle')
     setAutoDetect(null)
+    setVideoStarted(false)
+    videoStartedRef.current = false
     ytPlayerRef.current?.destroy?.()
     ytPlayerRef.current = null
   }, [title, url, content, isDone])
@@ -103,8 +113,14 @@ export default function VideoModal({
     []
   )
 
+  // Completion stays locked until a real (embeddable) video has actually
+  // started playing. Download / external-tab lessons have no video here, so
+  // they are never gated.
+  const isVideoLesson = !!playback
+  const notStarted = isVideoLesson && !videoStarted && !view.done
+
   const finishFlow = async () => {
-    if (phase !== 'idle') return
+    if (phase !== 'idle' || !videoStartedRef.current) return
     setPhase('finishing')
     let result
     try {
@@ -150,7 +166,13 @@ export default function VideoModal({
               if (!disposed) setAutoDetect(true)
             },
             onStateChange: (e) => {
-              if (!disposed && e.data === window.YT.PlayerState.ENDED) {
+              if (disposed) return
+              if (e.data === window.YT.PlayerState.PLAYING) {
+                videoStartedRef.current = true
+                setVideoStarted(true)
+                return
+              }
+              if (e.data === window.YT.PlayerState.ENDED) {
                 finishFlow()
               }
             },
@@ -205,6 +227,61 @@ export default function VideoModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId])
 
+// ---- Embeddable (non-YouTube) player bootstrap for the CURRENT video -----
+  const embedSrc = playback && playback.kind === 'embed' ? playback.src : null
+
+  useEffect(() => {
+    if (!embedSrc) return undefined
+    let disposed = false
+
+    const build = () => {
+      if (disposed || !window.Vimeo || !embedFrameRef.current) return
+      try {
+        const player = window.Vimeo.Player(embedFrameRef.current)
+        vimeoPlayerRef.current = player
+        player.on('play', () => {
+          if (!disposed) {
+            videoStartedRef.current = true
+            setVideoStarted(true)
+          }
+        })
+        player.on('ended', () => {
+          if (!disposed) finishFlow()
+        })
+      } catch {
+        // No event API (non-Vimeo embed): unlock so students aren't trapped.
+        if (!disposed) {
+          videoStartedRef.current = true
+          setVideoStarted(true)
+        }
+      }
+    }
+
+    if (window.Vimeo && window.Vimeo.Player) {
+      build()
+    } else {
+      const s = document.createElement('script')
+      s.src = 'https://player.vimeo.com/api/player.js'
+      s.onload = build
+      document.body.appendChild(s)
+      const failTimer = setTimeout(() => {
+        if (!disposed) {
+          videoStartedRef.current = true
+          setVideoStarted(true)
+        }
+      }, 6000)
+      return () => {
+        disposed = true
+        clearTimeout(failTimer)
+        vimeoPlayerRef.current = null
+      }
+    }
+    const cleanup = () => {
+      disposed = true
+    }
+    return cleanup
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedSrc])
   const hasNotes = !!(view.content && view.content.trim())
 
   return createPortal(
@@ -246,6 +323,7 @@ export default function VideoModal({
           {playback && playback.kind === 'embed' && (
             <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
               <iframe
+                ref={embedFrameRef}
                 src={playback.src}
                 title={view.title || 'Lesson video'}
                 className="h-full w-full"
@@ -289,9 +367,11 @@ export default function VideoModal({
               ? '✓ Completed!'
               : phase === 'finishing'
                 ? 'Saving…'
-                : autoDetect === true
-                  ? 'Auto-completes when the video ends'
-                  : 'Finished watching? Mark it complete below.'}
+                : notStarted
+                  ? '▶ Start the video to enable completion'
+                  : autoDetect === true
+                    ? 'Auto-completes when the video ends'
+                    : 'Finished watching? Mark it complete below.'}
           </span>
           {view.done ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-green-default/25 bg-green-soft px-3 py-1.5 text-xs font-semibold text-green-default">
@@ -304,8 +384,9 @@ export default function VideoModal({
                 if (phase !== 'idle') return
                 finishFlow()
               }}
-              disabled={phase !== 'idle'}
-              className="primary-btn inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 no-underline rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong px-5 py-2.5 font-bold text-[#031320] shadow-[0_6px_18px_rgba(13,190,255,0.22)] transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60"
+              disabled={phase !== 'idle' || notStarted}
+              title={notStarted ? 'Start the video to unlock completion' : undefined}
+              className="primary-btn inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 no-underline rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong px-5 py-2.5 font-bold text-[#031320] shadow-[0_6px_18px_rgba(13,190,255,0.22)] transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60 ${notStarted ? 'blur-[2px]' : ''}"
             >
               {phase === 'finishing' ? 'Saving…' : phase === 'success' ? '✓ Done' : '✓ Complete & continue'}
             </button>

@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: academy_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lms_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-academy_lms}
+    # Publish Postgres on the host (bound to localhost only) so local tooling
+    # (npm run seed / db:migrate) can reach it via localhost:5432. The server
+    # service keeps using the internal `db:5432` host from the compose network,
+    # so this mapping does not affect container-to-container traffic.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lms} -d ${POSTGRES_DB:-academy_lms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: ./server
+    container_name: academy_server
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lms}:${POSTGRES_PASSWORD:-lms_pass}@db:5432/${POSTGRES_DB:-academy_lms}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@ishub.academy}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-admin123!}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  client:
+    build: ./client
+    container_name: academy_client
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    # nginx resolves `upstream server` at startup, so the server container must
+    # already exist when nginx boots or the client crash-loops. Keep the order.
+    depends_on:
+      - server
+
+volumes:
+  db_data:
