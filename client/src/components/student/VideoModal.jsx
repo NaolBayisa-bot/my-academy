@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Button } from '../ui'
 import LessonContent from './LessonContent'
 
 /**
@@ -337,14 +338,9 @@ export default function VideoModal({
               <p className="m-0 mb-3 text-sm text-muted">
                 This video can’t be embedded here — open it in a new tab instead.
               </p>
-              <a
-                href={view.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer"
-              >
+              <Button renderAs="a" href={view.url} target="_blank" rel="noopener noreferrer">
                 Open in new tab ↗
-              </a>
+              </Button>
             </div>
           )}
           </div>
@@ -378,7 +374,7 @@ export default function VideoModal({
               ✓ Completed
             </span>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={() => {
                 if (phase !== 'idle') return
@@ -386,10 +382,10 @@ export default function VideoModal({
               }}
               disabled={phase !== 'idle' || notStarted}
               title={notStarted ? 'Start the video to unlock completion' : undefined}
-              className="primary-btn inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 no-underline rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong px-5 py-2.5 font-bold text-[#031320] shadow-[0_6px_18px_rgba(13,190,255,0.22)] transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60 ${notStarted ? 'blur-[2px]' : ''}"
+              className={notStarted ? 'blur-[2px]' : ''}
             >
               {phase === 'finishing' ? 'Saving…' : phase === 'success' ? '✓ Done' : '✓ Complete & continue'}
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -1,6 +1,29 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
+import { formatDate } from '../../utils/formatters'
+import {
+  ContentPage,
+  PageHeader,
+  Button,
+  Field,
+  Input,
+  Textarea,
+  Select,
+  Alert,
+  Chip,
+} from '../../components/ui'
+
+function PostsSkeleton() {
+  return (
+    <ContentPage aria-busy="true" aria-label="Loading posts">
+      <div className="panel p-5 flex flex-col gap-3">
+        <div className="h-4 w-32 rounded bg-[rgba(148,175,211,0.15)] animate-shimmer" />
+        <div className="h-24 w-full rounded-xl bg-[rgba(148,175,211,0.1)] animate-shimmer" />
+      </div>
+    </ContentPage>
+  )
+}
 
 // Posts page shared by `category_admin` and `super_admin`.
 //
@@ -121,37 +144,22 @@ function Posts() {
     }
   }
 
-  const formatDate = (value) => {
-    if (!value) return '—'
-    const date = new Date(value)
-    return Number.isNaN(date.getTime())
-      ? '—'
-      : date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-  }
-
   if (loading) {
-    return <div>Loading...</div>
+    return <PostsSkeleton />
   }
 
   return (
-    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-      <div className="page-header mb-6">
-        <div>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Posts</h1>
-          <p className="page-subtitle text-sm text-muted mt-1.5">Create and manage announcements across your academy channels.</p>
-        </div>
-      </div>
+    <ContentPage>
+      <PageHeader
+        title="Posts"
+        subtitle="Create and manage announcements across your academy channels."
+      />
 
-      {error && <p className="form-error text-red-400 text-sm m-0">{error}</p>}
+      {error && <Alert tone="error" className="mb-5">{error}</Alert>}
 
-      <form onSubmit={handleSubmit} className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 form-grid grid gap-4 sm:grid-cols-2">
-        <div className="field flex flex-col gap-1.5">
-          <label htmlFor="post-title">Title</label>
-          <input
+      <form onSubmit={handleSubmit} className="panel-shell p-5 mb-6 grid gap-4 sm:grid-cols-2">
+        <Field label="Title" htmlFor="post-title">
+          <Input
             id="post-title"
             type="text"
             value={title}
@@ -159,11 +167,10 @@ function Posts() {
             required
             placeholder="Post title"
           />
-        </div>
+        </Field>
 
-        <div className="field flex flex-col gap-1.5">
-          <label htmlFor="post-content">Content</label>
-          <textarea
+        <Field label="Content" htmlFor="post-content">
+          <Textarea
             id="post-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -171,16 +178,27 @@ function Posts() {
             required
             placeholder="Write your message..."
           />
-        </div>
+        </Field>
 
         {isSuperAdmin && (
-          <div className="field flex flex-col gap-1.5">
-            <label htmlFor="post-scope">Posting scope</label>
-            <select
+          <Field
+            label="Posting scope"
+            htmlFor="post-scope"
+            hint={
+              <>
+                This post will be visible to{' '}
+                <span className="font-semibold text-cyan-default">
+                  {postScope
+                    ? `the ${categories.find((c) => c.id === postScope)?.name || 'selected category'} only`
+                    : 'all users across every category'}
+                </span>.
+              </>
+            }
+          >
+            <Select
               id="post-scope"
               value={postScope}
               onChange={(e) => setPostScope(e.target.value)}
-              className="text-sm bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.18)] rounded-xl px-3 py-2.5 outline-none focus:border-cyan-default/50 cursor-pointer"
             >
               <option value="">🌐 Global — visible to all users</option>
               {categories.map((c) => (
@@ -188,66 +206,53 @@ function Posts() {
                   {c.name}
                 </option>
               ))}
-            </select>
-            <p className="text-xs text-muted m-0">
-              This post will be visible to{' '}
-              <span className="font-semibold text-cyan-default">
-                {postScope
-                  ? `the ${categories.find((c) => c.id === postScope)?.name || 'selected category'} only`
-                  : 'all users across every category'}
-              </span>.
-            </p>
-          </div>
+            </Select>
+          </Field>
         )}
 
-        <button type="submit" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" disabled={submitting}>
+        <Button type="submit" disabled={submitting}>
           {submitting ? 'Saving...' : 'Create Post'}
-        </button>
+        </Button>
       </form>
 
       {posts.length === 0 ? (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <p className="page-subtitle text-sm text-muted mt-1.5">No posts yet.</p>
+        <div className="panel-shell p-5 mb-6">
+          <p className="page-subtitle">No posts yet.</p>
         </div>
       ) : (
-        <div className="card-grid grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
-            <article key={post.id} className="list-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
-              <div className="card-top flex justify-between items-start gap-4">
+            <article key={post.id} className="panel p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
+              <div className="flex justify-between items-start gap-4">
                 <div>
-                  <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Update</p>
-                  <h3>{post.title}</h3>
+                  <p className="eyebrow">Update</p>
+                  <h3 className="font-bold text-base m-0">{post.title}</h3>
                 </div>
                 {post.category_id === null ? (
-                  <span className="chip success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">🌐 Global</span>
+                  <Chip variant="success" size="sm">🌐 Global</Chip>
                 ) : (
-                  <span className="chip inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-soft border border-cyan-default/25 text-cyan-default max-w-[160px] truncate">
+                  <Chip variant="cyan" size="sm" className="max-w-[160px] truncate">
                     {categories.find((c) => c.id === post.category_id)?.name || 'Category post'}
-                  </span>
+                  </Chip>
                 )}
               </div>
 
-              <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap m-0">{post.content}</p>
 
-              <div className="meta-row flex flex-wrap gap-3 text-xs text-muted pt-3 border-t border-[rgba(143,170,205,0.1)]">
+              <div className="flex flex-wrap gap-3 text-xs text-muted pt-3 border-t border-[rgba(143,170,205,0.1)]">
                 <span>By {post.author?.name || '—'}</span>
                 <span>•</span>
                 <span>{formatDate(post.created_at)}</span>
               </div>
 
-              <button
-                type="button"
-                className="danger-btn inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-5 py-2.5 rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                onClick={() => handleDelete(post.id)}
-                disabled={deletingId === post.id}
-              >
+              <Button variant="danger" onClick={() => handleDelete(post.id)} disabled={deletingId === post.id}>
                 {deletingId === post.id ? 'Deleting...' : 'Delete'}
-              </button>
+              </Button>
             </article>
           ))}
         </div>
       )}
-    </div>
+    </ContentPage>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import api from '../../api/axios'
+import { Button } from '../../components/ui'
 
 function CourseDetail() {
   const { courseId } = useParams()
@@ -314,13 +315,13 @@ function CourseDetail() {
           </h1>
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={() => setShowAddModule((v) => !v)}
-          className={showAddModule ? 'ghost-btn inline-flex items-center justify-center no-underline text-muted hover:text-cyan-default px-4 py-2.5 rounded-xl transition-colors cursor-pointer' : 'primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer'}
+          variant={showAddModule ? 'ghost' : 'primary'}
         >
           {showAddModule ? 'Cancel' : '+ Add Module'}
-        </button>
+        </Button>
       </div>
 
       {error && (
@@ -349,9 +350,9 @@ function CourseDetail() {
             </div>
           </div>
 
-          <button type="submit" disabled={submitting} className="primary-btn mt-1 self-start inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+          <Button type="submit" disabled={submitting} className="mt-1 self-start">
             {submitting ? 'Saving...' : 'Save Module'}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -397,12 +398,12 @@ function CourseDetail() {
                 <h4 className="text-sm font-bold m-0">New lesson in &ldquo;{module.title}&rdquo;</h4>
                 {lessonFormFields(`add-${module.id}`)}
                 <div className="flex items-center gap-2.5">
-                  <button type="submit" disabled={submitting} className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                  <Button type="submit" disabled={submitting}>
                     {submitting ? 'Saving...' : 'Save Lesson'}
-                  </button>
-                  <button type="button" onClick={() => setShowAddLessonFor(null)} disabled={submitting} className="inline-flex items-center justify-center no-underline text-muted hover:text-cyan-default px-4 py-2 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  </Button>
+                  <Button type="button" onClick={() => setShowAddLessonFor(null)} disabled={submitting} variant="ghost">
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}

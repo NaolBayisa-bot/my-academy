@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
+import {
+  ContentPage,
+  PageHeader,
+  Button,
+  Field,
+  Input,
+  Select,
+  Alert,
+  Chip,
+} from '../../components/ui'
 
 // Super admin page: assign a category admin to each category.
 //
@@ -76,10 +86,7 @@ function AssignAdmins() {
         await loadCategories()
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err.response?.data?.error ||
-            'Failed to load categories. Please try again.'
-          )
+          setError(err.response?.data?.error || 'Failed to load categories.')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -179,51 +186,34 @@ function AssignAdmins() {
   // Loading state
   if (loading) {
     return (
-      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <div className="text-muted text-sm text-center py-6">Loading categories...</div>
+      <ContentPage>
+        <div className="panel-shell p-5 mb-6">
+          <div className="text-sm text-muted text-center py-6">Loading categories...</div>
         </div>
-      </div>
+      </ContentPage>
     )
   }
 
   // Error state (when no categories loaded)
   if (error && categories.length === 0) {
     return (
-      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <p className="form-error text-red-400 text-sm m-0">{error}</p>
-        </div>
-      </div>
+      <ContentPage>
+        <Alert tone="error">{error}</Alert>
+      </ContentPage>
     )
   }
 
   return (
-    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-      {/* Page Header */}
-      <div className="page-header mb-6">
-        <div>
-          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Access control</p>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Assign Category Admins</h1>
-          <p className="page-subtitle text-sm text-muted mt-1.5 m-0">
-            Promote students to category administrators.
-          </p>
-        </div>
-      </div>
+    <ContentPage>
+      <PageHeader
+        eyebrow="Access control"
+        title="Assign Category Admins"
+        subtitle="Promote students to category administrators."
+      />
 
-      {/* Messages */}
-      {error && (
-        <div className="form-error text-red-400 text-sm m-0 mb-4 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="success-message text-green-default text-sm m-0 mb-4 rounded-lg border border-green-500/25 bg-green-500/10 px-3 py-2">
-          {success}
-        </div>
-      )}
+      {error && <Alert tone="error" className="mb-4">{error}</Alert>}
+      {success && <Alert tone="success" className="mb-4">{success}</Alert>}
 
-      {/* Categories Grid */}
       <div className="flex flex-col gap-5">
         {categories.map((category) => {
           const admin = category.admin
@@ -232,137 +222,96 @@ function AssignAdmins() {
           const selected = selectedByCat[category.id] || ''
 
           return (
-            <article
-              key={category.id}
-              className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-4 transition-colors duration-200 hover:border-cyan-default/25"
-            >
-              {/* Category Header */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                  <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0">Category</p>
-                  <h3 className="text-lg font-bold m-0">{category.name}</h3>
+            <article key={category.id} className="panel p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base m-0">{category.name}</h3>
                 </div>
                 {admin ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default shrink-0">
-                    Assigned
-                  </span>
+                  <Chip variant="success" size="sm">Assigned</Chip>
                 ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted shrink-0">
-                    Unassigned
-                  </span>
+                  <Chip variant="neutral" size="sm">Unassigned</Chip>
                 )}
               </div>
 
-              {/* Current Admin Section */}
-              <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border border-[rgba(143,170,205,0.1)] bg-[rgba(9,17,27,0.5)] px-4 py-3">
-                <div className="info-block flex flex-col gap-1 min-w-0">
-                  <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Current admin</span>
-                  <p className={`m-0 text-sm truncate ${admin ? 'font-medium' : 'text-muted italic'}`}>
-                    {adminLabel(admin)}
-                  </p>
-                </div>
+              {/* Current admin */}
+              <p className="text-sm text-muted m-0 mb-4">
+                Current admin:{' '}
+                <span className={`font-medium ${admin ? 'text-cyan-default' : ''}`}>
+                  {adminLabel(admin)}
+                </span>
+              </p>
 
-                {/* Remove Admin Button — inline confirm (no window.confirm,
-                    which is silently blocked in embedded browsers) */}
-                {admin && confirmRemoveId !== category.id && (
-                  <button
-                    type="button"
-                    className="danger-btn small shrink-0 inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-3.5 py-2 text-sm rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    onClick={() => setConfirmRemoveId(category.id)}
-                    disabled={busy}
-                    title="Remove admin"
+              {admin && (
+                <div className="mb-4">
+                  {confirmRemoveId === category.id ? (
+                    <div className="alert alert-warning flex flex-wrap items-center gap-3">
+                      <span className="flex-1">Remove {admin.name} as the admin for this category?</span>
+                      <div className="flex gap-2">
+                        <Button variant="danger" size="sm" onClick={() => handleDeassign(category)} disabled={busy}>
+                          {busy ? 'Working...' : 'Yes, remove'}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveId(null)} disabled={busy}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button variant="danger" size="sm" onClick={() => setConfirmRemoveId(category.id)} disabled={busy}>
+                      Remove Admin
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Assign a new admin */}
+              <div className="grid gap-4 sm:grid-cols-[1fr_1.4fr_auto] sm:items-end">
+                <Field label="Search" htmlFor={`search-${category.id}`}>
+                  <Input
+                    id={`search-${category.id}`}
+                    type="search"
+                    placeholder="Name or email..."
+                    value={searchByCat[category.id] || ''}
+                    onChange={(e) => setSearch(category.id, e.target.value)}
+                    disabled={busy || candidatesLoading}
+                  />
+                </Field>
+
+                <Field label="Available users" htmlFor={`select-${category.id}`}>
+                  <Select
+                    id={`select-${category.id}`}
+                    value={selected}
+                    onChange={(e) => setSelected(category.id, e.target.value)}
+                    disabled={busy || studentsForCategory.length === 0 || candidatesLoading}
                   >
-                    Remove
-                  </button>
-                )}
-                {admin && confirmRemoveId === category.id && (
-                  <div className="shrink-0 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5">
-                    <span className="text-xs text-red-300 whitespace-nowrap">
-                      Remove {admin.name}?
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeassign(category)}
-                      disabled={busy}
-                      className="inline-flex items-center justify-center no-underline bg-red-500/80 hover:bg-red-500 text-white font-semibold px-3 py-1.5 text-xs rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      {busy ? 'Removing...' : 'Yes, remove'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmRemoveId(null)}
-                      disabled={busy}
-                      className="inline-flex items-center justify-center no-underline text-muted hover:text-[var(--text)] px-2.5 py-1.5 text-xs rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
+                    <option value="" disabled>
+                      {studentsForCategory.length === 0
+                        ? '— No students available —'
+                        : '-- Select a user --'}
+                    </option>
+                    {studentsForCategory.length > 0 &&
+                      studentsForCategory.map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.name} ({candidate.email})
+                        </option>
+                      ))}
+                  </Select>
+                </Field>
+
+                <Button
+                  onClick={() => handleAssign(category)}
+                  disabled={busy || !selected || studentsForCategory.length === 0 || candidatesLoading}
+                >
+                  {busy ? 'Assigning...' : 'Assign'}
+                </Button>
               </div>
 
-              {/* Assign New Admin Section */}
-              <div className="pt-4 border-t border-[rgba(143,170,205,0.1)] mt-auto flex flex-col gap-3">
-                <h4 className="text-xs font-semibold text-muted uppercase tracking-wider m-0">Assign new admin</h4>
-
-                <div className="grid gap-4">
-                  {/* Search Input */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium" htmlFor={`search-${category.id}`}>Search</label>
-                    <input
-                      id={`search-${category.id}`}
-                      type="search"
-                      placeholder="Name or email..."
-                      value={searchByCat[category.id] || ''}
-                      onChange={(e) => setSearch(category.id, e.target.value)}
-                      disabled={busy || candidatesLoading}
-                      className="w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Student Selector */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium" htmlFor={`select-${category.id}`}>Available users</label>
-                    <select
-                      id={`select-${category.id}`}
-                      value={selected}
-                      onChange={(e) => setSelected(category.id, e.target.value)}
-                      disabled={busy || studentsForCategory.length === 0 || candidatesLoading}
-                      className="field-select w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed [&>option]:bg-[#0d1623]"
-                    >
-                      <option value="" disabled>
-                        {studentsForCategory.length === 0
-                          ? '— No students available —'
-                          : '-- Select a user --'}
-                      </option>
-                      {studentsForCategory.length > 0 &&
-                        studentsForCategory.map((candidate) => (
-                          <option key={candidate.id} value={candidate.id}>
-                            {candidate.name} ({candidate.email})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  {/* Assign Button */}
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <button
-                      type="button"
-                      className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
-                      onClick={() => handleAssign(category)}
-                      disabled={busy || !selected || studentsForCategory.length === 0 || candidatesLoading}
-                    >
-                      {busy ? 'Assigning...' : 'Assign'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Empty State */}
-                {!candidatesLoading && studentsForCategory.length === 0 && (
-                  <p className="muted-copy text-sm text-muted m-0">
-                    No students available in this category.
-                  </p>
-                )}
-              </div>
+              {/* Empty State */}
+              {!candidatesLoading && studentsForCategory.length === 0 && (
+                <p className="text-sm text-muted m-0 mt-3">
+                  No students available in this category.
+                </p>
+              )}
             </article>
           )
         })}
@@ -370,11 +319,11 @@ function AssignAdmins() {
 
       {/* No Categories State */}
       {categories.length === 0 && !error && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
-          <p className="page-subtitle text-sm text-muted mt-1.5">No categories found.</p>
+        <div className="panel-shell p-5 mb-6">
+          <p className="page-subtitle">No categories found.</p>
         </div>
       )}
-    </div>
+    </ContentPage>
   )
 }
 

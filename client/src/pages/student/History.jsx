@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
+import { ContentPage, PageHeader, Button, Chip, SkeletonBlock, Alert } from '../../components/ui'
+import { formatDate, relativeTime } from '../../utils/formatters'
 
 // Student course-completion history. Shows completed enrollments grouped by
 // year, with a summary header, per-course lesson counts and relative time.
-
-function SkeletonBlock({ className }) {
-  return <div className={"rounded bg-[rgba(148,175,211,0.15)] animate-shimmer " + (className || '')} />
-}
 
 function HistorySkeleton() {
   return (
@@ -17,7 +15,7 @@ function HistorySkeleton() {
         <SkeletonBlock className="h-8 w-64 max-w-full" />
         <SkeletonBlock className="h-3 w-48" />
       </div>
-      <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-4">
+      <div className="panel p-5 flex flex-col gap-4">
         <SkeletonBlock className="h-4 w-24" />
         {[0, 1, 2].map((i) => (
           <div key={i} className="rounded-xl border border-[rgba(143,170,205,0.1)] bg-[rgba(9,17,27,0.5)] p-4 flex flex-col gap-3">
@@ -28,31 +26,6 @@ function HistorySkeleton() {
       </div>
     </div>
   )
-}
-
-const formatDate = (value) => {
-  if (!value) return 'Unknown'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return 'Unknown'
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-// Relative completion time, e.g. "2 months ago" / "yesterday".
-const relativeTime = (iso) => {
-  if (!iso) return ''
-  const diff = Date.now() - new Date(iso).getTime()
-  if (diff < 60000) return 'just now'
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return mins + 'm ago'
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return hours + 'h ago'
-  const days = Math.floor(hours / 24)
-  if (days === 1) return 'yesterday'
-  if (days < 30) return days + 'd ago'
-  const months = Math.floor(days / 30)
-  if (months < 12) return months + ' month' + (months === 1 ? '' : 's') + ' ago'
-  const years = Math.floor(months / 12)
-  return years + ' year' + (years === 1 ? '' : 's') + ' ago'
 }
 
 function History() {
@@ -93,33 +66,25 @@ function History() {
   const totalLessons = enrollments.reduce((sum, e) => sum + (e.course?.lessonsCount || 0), 0)
 
   if (loading) {
-    return (
-      <div className="content-page max-w-[1100px] mx-auto w-full p-6">
-        <HistorySkeleton />
-      </div>
-    )
+    return <ContentPage className="max-w-[1100px]"><HistorySkeleton /></ContentPage>
   }
 
   if (error) {
-    return (
-      <div className="content-page max-w-[1100px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
-          <p className="m-0">{error}</p>
-        </div>
-      </div>
-    )
+    return <ContentPage className="max-w-[1100px]"><Alert tone="error">{error}</Alert></ContentPage>
   }
 
   return (
-    <div className="content-page max-w-[1100px] mx-auto w-full p-6">
-      <header className="animate-fade-up">
-        <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Progress tracker</p>
-        <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My History</h1>
-        <p className="text-sm text-muted mt-1.5">
-          You have completed <strong className="text-green-default">{enrollments.length}</strong> course{enrollments.length === 1 ? '' : 's'}
-          {totalLessons > 0 && <> across <strong className="text-green-default">{totalLessons}</strong> lesson{totalLessons === 1 ? '' : 's'}</>}.
-        </p>
-      </header>
+    <ContentPage className="max-w-[1100px]">
+      <PageHeader
+        eyebrow="Progress tracker"
+        title="My History"
+        subtitle={
+          <>
+            You have completed <strong className="text-green-default">{enrollments.length}</strong> course{enrollments.length === 1 ? '' : 's'}
+            {totalLessons > 0 && <> across <strong className="text-green-default">{totalLessons}</strong> lesson{totalLessons === 1 ? '' : 's'}</>}.
+          </>
+        }
+      />
 
       {enrollments.length === 0 ? (
         <div className="flex flex-col items-center gap-3 text-center py-12">
@@ -127,12 +92,9 @@ function History() {
           <p className="text-sm text-muted max-w-xs m-0">
             You have not completed any courses yet. Start learning and your completed courses will appear here.
           </p>
-          <Link
-            to="/student/browse"
-            className="no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default text-sm"
-          >
+          <Button renderAs={Link} to="/student/browse" size="sm">
             Browse courses →
-          </Link>
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-6">
@@ -153,9 +115,9 @@ function History() {
                       <h3 className="font-bold text-base m-0 leading-snug">
                         {enrollment.course?.title || 'Untitled Course'}
                       </h3>
-                      <span className="chip inline-flex shrink-0 items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-soft text-green-default border border-green-default/30">
+                      <Chip variant="success" size="sm" className="uppercase font-bold text-[10px] shrink-0">
                         <span aria-hidden="true">✓</span> Completed
-                      </span>
+                      </Chip>
                     </div>
 
                     {enrollment.course?.description && (
@@ -187,7 +149,7 @@ function History() {
           ))}
         </div>
       )}
-    </div>
+    </ContentPage>
   )
 }
 

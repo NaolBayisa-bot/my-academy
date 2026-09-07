@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
+import { ContentPage, PageHeader, Chip, Alert } from '../../components/ui'
 
 // Category picker for students.
 //  - Initial flow (?change absent): a student with no `category_id` picks one and
@@ -68,27 +69,25 @@ function SelectCategory() {
 
   if (loading) {
     return (
-      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+      <ContentPage>
+        <div className="panel p-5">
           <p>Loading categories...</p>
         </div>
-      </div>
+      </ContentPage>
     )
   }
 
   return (
-    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-      <div className="page-header mb-6">
-        <div>
-          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">{changeMode ? 'Change category' : 'Start here'}</p>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">{changeMode ? 'Change Your Category' : 'Select Your Category'}</h1>
-        </div>
-        {changeMode && (
-          <span className="chip inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-cyan-soft text-cyan-default border border-cyan-default/25">
-            change mode
-          </span>
-        )}
-      </div>
+    <ContentPage>
+      <PageHeader
+        eyebrow={changeMode ? 'Change category' : 'Start here'}
+        title={changeMode ? 'Change Your Category' : 'Select Your Category'}
+        action={
+          changeMode && (
+            <Chip variant="cyan" size="sm">change mode</Chip>
+          )
+        }
+      />
 
       {changeMode && user?.category_id && (
         <p className="text-sm text-muted m-0 mb-4">
@@ -98,13 +97,13 @@ function SelectCategory() {
       )}
 
       {fetchError && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
-          <p>{fetchError}</p>
+        <div className="mb-6">
+          <Alert tone="error">{fetchError}</Alert>
         </div>
       )}
       {selectError && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
-          <p>{selectError}</p>
+        <div className="mb-6">
+          <Alert tone="error">{selectError}</Alert>
         </div>
       )}
 
@@ -117,12 +116,12 @@ function SelectCategory() {
             onClick={() => handleSelect(category)}
             disabled={selectingId === category.id}
           >
-            <span className="category-choice category-choice-icon text-cyan-default text-lg">◈</span>
+            <span className="category-choice-icon text-cyan-default text-lg">◈</span>
             <span>{selectingId === category.id ? 'Selecting...' : category.name}</span>
           </button>
         ))}
       </div>
-    </div>
+    </ContentPage>
   )
 }
 

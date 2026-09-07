@@ -7,6 +7,7 @@ import CheckCircle from '../../components/student/CheckCircle'
 import SkeletonRows from '../../components/student/SkeletonRows'
 import VideoModal from '../../components/student/VideoModal'
 import ConfettiBurst from '../../components/student/ConfettiBurst'
+import { PageHeader, Button, Alert } from '../../components/ui'
 
 const POLL_INTERVAL_MS = 30_000
 const CONFETTI_DURATION_MS = 5200
@@ -408,10 +409,10 @@ function MyEnrollment() {
                             if (!locked) openLesson(lesson)
                           }}
                           disabled={locked}
-                          className={`secondary-btn shrink-0 inline-flex items-center justify-center gap-1.5 no-underline font-semibold px-4 py-2 rounded-xl text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60 ${
+                          className={`btn btn-secondary shrink-0 inline-flex items-center justify-center gap-1.5 font-semibold text-sm transition-all duration-200 ${
                             locked
-                              ? 'cursor-not-allowed border border-[rgba(143,170,205,0.15)] bg-[rgba(9,17,27,0.4)] text-muted opacity-70'
-                              : 'cursor-pointer border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)]'
+                              ? 'cursor-not-allowed opacity-70'
+                              : 'cursor-pointer'
                           }`}
                         >
                           {locked ? '🔒 Locked' : lesson.type === 'video' ? 'Watch' : 'Get'}
@@ -431,12 +432,7 @@ function MyEnrollment() {
   if (loading) {
     return (
       <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="page-header mb-6">
-          <div>
-            <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
-            <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My Enrollment</h1>
-          </div>
-        </div>
+        <PageHeader eyebrow="Learning progress" title="My Enrollment" className="mb-6" />
         <SkeletonRows rows={5} />
       </div>
     )
@@ -445,18 +441,13 @@ function MyEnrollment() {
   if (!enrollment) {
     return (
       <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="page-header mb-6">
-          <div>
-            <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
-            <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My Enrollment</h1>
-          </div>
-        </div>
+        <PageHeader eyebrow="Learning progress" title="My Enrollment" className="mb-6" />
 
         <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 empty-state text-center py-10">
           <p>You don't have an active enrollment yet.</p>
-          <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+          <Button renderAs={Link} to="/student/browse" className="mt-3">
             Browse Courses
-          </Link>
+          </Button>
         </div>
       </div>
     )
@@ -476,18 +467,9 @@ function MyEnrollment() {
         />
       )}
 
-      <div className="page-header mb-6">
-        <div>
-          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning progress</p>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">My Enrollment</h1>
-        </div>
-      </div>
+      <PageHeader eyebrow="Learning progress" title="My Enrollment" className="mb-6" />
 
-      {error && (
-        <div className="section-shell rounded-2xl border border-red-500/30 bg-[rgba(239,68,68,0.08)] p-5 mb-6 error-panel">
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
       {statusNotice === 'approved' && (
         <div className="section-shell rounded-2xl border border-green-default/30 bg-[rgba(45,212,167,0.08)] p-5 mb-6 flex items-start justify-between gap-4 flex-wrap success-panel">
@@ -542,9 +524,7 @@ function MyEnrollment() {
             </p>
           )}
           <div className="button-row flex flex-wrap items-center gap-2.5 mt-3">
-            <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-              Browse Courses
-            </Link>
+            <Button renderAs={Link} to="/student/browse">Browse Courses</Button>
           </div>
         </div>
       )}
@@ -578,9 +558,7 @@ function MyEnrollment() {
             </div>
             <p className="post-body text-sm leading-relaxed whitespace-pre-wrap m-0">🎉 Congratulations — you finished every lesson!</p>
             <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
-              <Link to="/student/browse" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-                Explore more courses
-              </Link>
+              <Button renderAs={Link} to="/student/browse">Explore more courses</Button>
             </div>
           </div>
 
@@ -629,13 +607,9 @@ function MyEnrollment() {
                 <div className="rounded-xl border border-cyan-default/25 bg-[rgba(56,215,255,0.06)] p-3.5">
                   <p className="m-0 mb-1 text-xs font-semibold text-cyan-default uppercase tracking-wider">Next up</p>
                   <p className="m-0 mb-3 text-sm font-medium truncate">{nextUp.title}</p>
-                  <button
-                    type="button"
-                    onClick={continueLearning}
-                    className="primary-btn w-full inline-flex items-center justify-center gap-2 no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer"
-                  >
+                  <Button onClick={continueLearning} className="w-full">
                     ▶ Continue learning
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 totalLessons > 0 && (

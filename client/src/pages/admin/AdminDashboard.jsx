@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import api from '../api/axios'
-import { useAuth } from '../context/AuthContext'
+import api from '../../api/axios'
+import { useAuth } from '../../context/AuthContext'
+import { shortRelativeTime as relTime } from '../../utils/formatters'
+import { StatCard, SkeletonBlock, Chip } from '../../components/ui'
 
 // Category-admin statistical dashboard. All data comes from
 // GET /api/admin/category-stats: counts, enrollment status distribution,
@@ -33,22 +35,7 @@ const STATUS_RANK = {
   rejected: 3,
 }
 
-const relTime = (iso) => {
-  if (!iso) return '—'
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.floor(diff / 86_400_000)
-  if (days <= 0) return 'today'
-  if (days === 1) return 'yesterday'
-  if (days < 30) return `${days}d ago`
-  const months = Math.floor(days / 30)
-  return `${months}mo ago`
-}
-
 // ---- Small building blocks ---------------------------------------------
-
-function SkeletonBlock({ className = '' }) {
-  return <div className={`rounded bg-[rgba(148,175,211,0.15)] animate-shimmer ${className}`} />
-}
 
 function AdminDashboardSkeleton() {
   return (
@@ -59,7 +46,7 @@ function AdminDashboardSkeleton() {
       </div>
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 max-sm:grid-cols-1">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3">
+          <div key={i} className="stat-card">
             <SkeletonBlock className="h-3 w-20" />
             <SkeletonBlock className="h-8 w-14" />
             <SkeletonBlock className="h-3 w-24" />
@@ -67,30 +54,12 @@ function AdminDashboardSkeleton() {
         ))}
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 h-56" />
-        <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 h-56" />
+        <div className="panel h-56" />
+        <div className="panel h-56" />
       </div>
-      <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 h-72" />
+      <div className="panel h-72" />
     </div>
   )
-}
-
-function StatCard({ icon, iconBg, label, value, sub, to }) {
-  const inner = (
-    <>
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted font-semibold">{label}</span>
-        <span className={`w-9 h-9 rounded-xl grid place-items-center text-base ${iconBg}`} aria-hidden="true">{icon}</span>
-      </div>
-      <div className="text-3xl font-extrabold tracking-tight leading-none">{value}</div>
-      {sub && <p className="text-xs text-muted m-0">{sub}</p>}
-    </>
-  )
-  const cls = 'rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-2 min-h-[104px] transition-colors duration-200 hover:border-cyan-default/25 focus-visible:outline-2 focus-visible:outline-cyan-default'
-  if (to) {
-    return <Link to={to} className={`${cls} no-underline`}>{inner}</Link>
-  }
-  return <div className={cls}>{inner}</div>
 }
 
 // Circular SVG progress bar for table rows.
@@ -118,15 +87,15 @@ function MiniProgress({ pct }) {
 
 function statusChip(status) {
   const map = {
-    completed: 'bg-green-soft text-green-default',
-    pending: 'bg-yellow-500/10 text-yellow-300',
-    rejected: 'bg-pink-500/10 text-pink-300',
-    in_progress: 'bg-cyan-soft text-cyan-default',
+    completed: 'success',
+    pending: 'warning',
+    rejected: 'danger',
+    in_progress: 'cyan',
   }
   return (
-    <span className={`text-xs px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${map[status] || 'bg-[rgba(148,175,211,0.12)] text-muted'}`}>
+    <Chip variant={map[status] || 'neutral'} className="shrink-0">
       {STATUS_LABELS[status] || status || 'Not enrolled'}
-    </span>
+    </Chip>
   )
 }
 
@@ -298,10 +267,10 @@ function AdminDashboard() {
 
       {/* ---- KPI row ---- */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 max-sm:grid-cols-1" aria-label="Key metrics">
-        <StatCard icon="👥" iconBg="bg-cyan-soft text-cyan-default" label="Students" value={stats.totalStudents} sub="in your category" />
-        <StatCard icon="⏳" iconBg="bg-yellow-500/10 text-yellow-300" label="Pending" value={pendingCount} sub="enrollment requests" to="/admin/enrollments" />
-        <StatCard icon="📈" iconBg="bg-[rgba(56,215,255,0.12)] text-cyan-default" label="In progress" value={e.in_progress || 0} sub="active learners" />
-        <StatCard icon="🎯" iconBg="bg-purple-500/10 text-purple" label="Completion rate" value={`${e.completionRate || 0}%`} sub={`of ${e.total || 0} enrollments`} />
+        <StatCard icon="👥" iconBg="bg-cyan-soft text-cyan-default" title="Students" value={stats.totalStudents} subtitle="in your category" />
+        <StatCard icon="⏳" iconBg="bg-yellow-500/10 text-yellow-300" title="Pending" value={pendingCount} subtitle="enrollment requests" to="/admin/enrollments" />
+        <StatCard icon="📈" iconBg="bg-[rgba(56,215,255,0.12)] text-cyan-default" title="In progress" value={e.in_progress || 0} subtitle="active learners" />
+        <StatCard icon="🎯" iconBg="bg-purple-500/10 text-purple" title="Completion rate" value={`${e.completionRate || 0}%`} subtitle={`of ${e.total || 0} enrollments`} />
       </div>
 
       {/*

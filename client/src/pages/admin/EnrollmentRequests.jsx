@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
+import { formatDate } from '../../utils/formatters'
+import {
+  ContentPage,
+  PageHeader,
+  Button,
+  Select,
+  Alert,
+} from '../../components/ui'
 
 // Enrollment approval page. Works for both:
 //  - category_admin: pending enrollments for their own category only.
@@ -118,57 +126,30 @@ function EnrollmentRequests() {
     }
   }
 
-  const formatDate = (value) => {
-    if (!value) return '—'
-    const date = new Date(value)
-    return Number.isNaN(date.getTime())
-      ? '—'
-      : date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-  }
-
   if (loading) {
     return (
-      <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6">
+      <ContentPage>
+        <div className="panel-shell p-5 mb-6">
           <p>Loading enrollment requests...</p>
         </div>
-      </div>
+      </ContentPage>
     )
   }
 
   return (
-    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-      <div className="page-header mb-6">
-        <div>
-          <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Access management</p>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Enrollment Requests</h1>
-        </div>
-      </div>
+    <ContentPage>
+      <PageHeader eyebrow="Access management" title="Enrollment Requests" />
 
-      {error && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 error-panel border-red-500/30 bg-[rgba(239,68,68,0.08)]">
-          <p>{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 success-panel border-green-500/30 bg-[rgba(45,212,167,0.08)]">
-          <p>{success}</p>
-        </div>
-      )}
+      {error && <Alert tone="error" className="mb-5">{error}</Alert>}
+      {success && <Alert tone="success" className="mb-5">{success}</Alert>}
 
       {isSuperAdmin && (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 request-filter-panel">
-          <label htmlFor="category-filter" className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">
+        <div className="panel-shell p-5 mb-6 flex flex-col gap-1.5 max-w-sm">
+          <label htmlFor="category-filter" className="field-label text-xs uppercase tracking-wider">
             Filter by category
           </label>
-          <select
+          <Select
             id="category-filter"
-            className="field-select flex flex-col gap-1.5"
             value={selectedCategoryId}
             onChange={(e) => setSelectedCategoryId(e.target.value)}
           >
@@ -178,17 +159,17 @@ function EnrollmentRequests() {
                 {cat.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
       {requests.length === 0 ? (
-        <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 empty-state text-center py-10">
+        <div className="panel-shell p-5 mb-6 text-center py-10">
           <p>No pending enrollment requests.</p>
         </div>
       ) : (
-        <div className="request-table-wrap rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-4 flex flex-col gap-2">
-          <div className="request-table-head grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-4 text-xs uppercase tracking-wider text-muted font-semibold pb-3 border-b border-[rgba(143,170,205,0.12)] max-md:hidden">
+        <div className="panel-shell p-4 flex flex-col gap-2">
+          <div className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-4 text-xs uppercase tracking-wider text-muted font-semibold pb-3 border-b border-[rgba(143,170,205,0.12)] max-md:hidden">
             <span>Student</span>
             <span>Course</span>
             <span>Requested</span>
@@ -196,52 +177,40 @@ function EnrollmentRequests() {
           </div>
 
           {requests.map((request) => (
-            <article key={request.id} className="request-row grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-4 items-center py-3 border-b border-[rgba(143,170,205,0.08)] max-md:grid-cols-1">
-              <div className="request-student flex items-center gap-3">
-                <div className="avatar w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-cyan-default to-purple font-black text-[#02131f] grid place-items-center text-sm">
+            <article key={request.id} className="grid grid-cols-[1.4fr_1.4fr_1fr_auto] gap-4 items-center py-3 border-b border-[rgba(143,170,205,0.08)] max-md:grid-cols-1">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-cyan-default to-purple font-black text-[#02131f] grid place-items-center text-sm">
                   {(request.student?.name || 'S').charAt(0).toUpperCase()}
                 </div>
-                <div className="info-block flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <strong>{request.student?.name || '—'}</strong>
-                  <span>{request.student?.email || 'No email'}</span>
+                  <span className="text-xs text-muted">{request.student?.email || 'No email'}</span>
                 </div>
               </div>
 
-              <div className="request-course">
-                <div className="info-block flex flex-col gap-1">
-                  <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Course</span>
-                  <strong>{request.course?.title || '—'}</strong>
-                </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-muted uppercase tracking-wider">Course</span>
+                <strong>{request.course?.title || '—'}</strong>
               </div>
 
-              <div className="request-date">
-                <span className="muted-label text-xs font-semibold text-muted uppercase tracking-wider">Requested</span>
-                <p>{formatDate(request.enrolled_at)}</p>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-muted uppercase tracking-wider">Requested</span>
+                <p className="m-0">{formatDate(request.enrolled_at)}</p>
               </div>
 
-              <div className="request-actions flex gap-2">
-                <button
-                  type="button"
-                  className="primary-btn small inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-3.5 py-2 text-sm rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer"
-                  onClick={() => handleApprove(request)}
-                  disabled={actingId === request.id}
-                >
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handleApprove(request)} disabled={actingId === request.id}>
                   {actingId === request.id ? 'Working...' : 'Approve'}
-                </button>
-                <button
-                  type="button"
-                  className="danger-btn inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-5 py-2.5 rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer small inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-3.5 py-2 text-sm rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  onClick={() => handleReject(request)}
-                  disabled={actingId === request.id}
-                >
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleReject(request)} disabled={actingId === request.id}>
                   Reject
-                </button>
+                </Button>
               </div>
             </article>
           ))}
         </div>
       )}
-    </div>
+    </ContentPage>
   )
 }
 

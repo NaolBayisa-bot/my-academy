@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
+import { Button } from '../components/ui'
 
 const categoryRoadmaps = [
   {
@@ -176,12 +177,9 @@ function LandingPage() {
           >
             Login
           </Link>
-          <Link
-            to="/register"
-            className="primary-action small inline-flex items-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_8px_24px_rgba(13,190,255,0.25)] hover:scale-[1.03] transition-all duration-200"
-          >
+          <Button renderAs={Link} to="/register" size="sm">
             Get started
-          </Link>
+          </Button>
         </div>
       </header>
 
@@ -204,18 +202,12 @@ function LandingPage() {
             Networking, and Creative Works.
           </p>
           <div className="hero-actions flex items-center justify-center gap-4 flex-wrap">
-            <Link
-              to="/register"
-              className="primary-action inline-flex items-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-7 py-3.5 rounded-xl shadow-[0_8px_24px_rgba(13,190,255,0.25)] hover:scale-[1.03] transition-all duration-200"
-            >
+            <Button renderAs={Link} to="/register" size="lg">
               Get started
-            </Link>
-            <Link
-              to="/login"
-              className="secondary-action inline-flex items-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-7 py-3.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200"
-            >
+            </Button>
+            <Button renderAs={Link} to="/login" variant="secondary" size="lg">
               Login
-            </Link>
+            </Button>
           </div>
         </section>
 
@@ -282,12 +274,9 @@ function LandingPage() {
         <section className="cta-panel my-16 rounded-2xl border border-[rgba(123,200,255,0.25)] bg-gradient-to-br from-[rgba(56,215,255,0.08)] to-[rgba(45,212,167,0.06)] p-10 md:p-14 text-center">
           <h2 className="text-3xl font-bold m-0 mb-2">Ready to Start Your Journey?</h2>
           <p className="text-muted mb-8">Join IS Hub Academy and build skills that matter.</p>
-          <Link
-            to="/register"
-            className="primary-action inline-flex items-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-8 py-3.5 rounded-xl shadow-[0_8px_24px_rgba(13,190,255,0.25)] hover:scale-[1.03] transition-all duration-200"
-          >
+          <Button renderAs={Link} to="/register" size="lg">
             Register Now
-          </Link>
+          </Button>
         </section>
       </main>
 

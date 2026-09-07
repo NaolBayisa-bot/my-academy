@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import PostsFeed from './PostsFeed'
 import { useCategoryCourses } from '../hooks/useCategoryCourses'
+import { SkeletonBlock, StatCard, Button, Chip, PageHeader } from '../components/ui'
+import ProgressBarRing from '../components/student/ProgressBarRing'
 
 // Student statistical dashboard. Aggregates the student's own endpoints:
 //  - GET /api/students/my-category-courses -> available courses
@@ -18,20 +20,14 @@ import { useCategoryCourses } from '../hooks/useCategoryCourses'
 //                          right column: community posts feed (sticky on desktop,
 //                          promoted above stats on mobile for visibility)
 
-// ---- Small building blocks ---------------------------------------------
-
-function SkeletonBlock({ className = '' }) {
-  return <div className={`rounded bg-[rgba(148,175,211,0.15)] animate-shimmer ${className}`} />
-}
-
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6" aria-busy="true" aria-label="Loading dashboard">
+    <div className="content-page flex flex-col gap-6" aria-busy="true" aria-label="Loading dashboard">
       <div className="flex flex-col gap-2">
         <SkeletonBlock className="h-3 w-32" />
         <SkeletonBlock className="h-8 w-72 max-w-full" />
       </div>
-      <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-6 flex flex-col gap-4">
+      <div className="panel p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-2">
             <SkeletonBlock className="h-3 w-24" />
@@ -43,77 +39,13 @@ function DashboardSkeleton() {
       </div>
       <div className="grid gap-4 grid-cols-3 max-sm:grid-cols-1">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3">
+          <div key={i} className="stat-card">
             <SkeletonBlock className="h-3 w-20" />
             <SkeletonBlock className="h-8 w-16" />
             <SkeletonBlock className="h-3 w-28" />
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-// Circular SVG progress ring — no external chart dependency needed.
-function ProgressRing({ pct, size = 88, stroke = 8 }) {
-  const clamped = Math.max(0, Math.min(100, Math.round(pct || 0)))
-  const radius = (size - stroke) / 2
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference * (1 - clamped / 100)
-  return (
-    <div
-      className="relative shrink-0"
-      style={{ width: size, height: size }}
-      role="progressbar"
-      aria-valuenow={clamped}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-label="Course progress"
-    >
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="rgba(15,27,40,0.9)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="url(#progressGradient)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-all duration-700 ease-out"
-        />
-        <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38d7ff" />
-            <stop offset="100%" stopColor="#2dd4a7" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <span className="absolute inset-0 grid place-items-center text-base font-extrabold tracking-tight">
-        {clamped}%
-      </span>
-    </div>
-  )
-}
-
-function StatCard({ icon, iconBg, label, value, sub }) {
-  return (
-    <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-2 min-h-[104px] transition-colors duration-200 hover:border-cyan-default/25 focus-within:border-cyan-default/25">
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted font-semibold">{label}</span>
-        <span className={`w-9 h-9 rounded-xl grid place-items-center text-base ${iconBg}`} aria-hidden="true">{icon}</span>
-      </div>
-      <div className="text-3xl font-extrabold tracking-tight leading-none">{value}</div>
-      {sub && <p className="text-xs text-muted m-0">{sub}</p>}
     </div>
   )
 }
@@ -210,50 +142,43 @@ function StudentDashboard() {
   const firstName = (user.name || 'Student').split(' ')[0]
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="content-page flex flex-col gap-6">
       {/* ---- Hero header ---- */}
-      <header className="flex items-end justify-between gap-4 flex-wrap animate-fade-up">
-        <div>
-          <p className="text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Learning overview</p>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight m-0">
-            {greeting()}, {firstName} 👋
-          </h1>
-          <p className="text-sm text-muted m-0 mt-1.5">
-            {hasActive
-              ? `You're ${Math.round(stats.progressPct ?? 0)}% through ${active.course?.title || 'your course'} — keep the momentum going!`
-              : isPending
-                ? 'Your enrollment request is awaiting admin approval.'
-                : 'Pick a course below and start learning today.'}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link
-            to={hasActive ? '/student/my-enrollment' : '/student/browse'}
-            className="inline-flex items-center gap-2 no-underline font-semibold text-sm px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong text-[#021522] hover:shadow-[0_0_24px_rgba(56,215,255,0.35)] transition-shadow duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default"
-          >
-            {hasActive ? '▶ Continue learning' : 'Explore courses'}
-          </Link>
-          {canChangeCategory && (
-            <Link
-              to="/student/select-category?change=1"
-              className="inline-flex items-center gap-1.5 no-underline font-medium text-xs px-4 py-2 rounded-xl border border-[rgba(143,170,205,0.18)] bg-[rgba(13,22,35,0.6)] text-muted hover:border-cyan-default/40 hover:text-cyan-default transition-all duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default"
-            >
-              ⚙️ Change category
-            </Link>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Learning overview"
+        title={`${greeting()}, ${firstName} 👋`}
+        subtitle={
+          hasActive
+            ? `You're ${Math.round(stats.progressPct ?? 0)}% through ${active.course?.title || 'your course'} — keep the momentum going!`
+            : isPending
+              ? 'Your enrollment request is awaiting admin approval.'
+              : 'Pick a course below and start learning today.'
+        }
+        action={
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button renderAs={Link} to={hasActive ? '/student/my-enrollment' : '/student/browse'} size="lg">
+              {hasActive ? '▶ Continue learning' : 'Explore courses'}
+            </Button>
+            {canChangeCategory && (
+              <Button renderAs={Link} to="/student/select-category?change=1" variant="secondary" size="sm">
+                ⚙️ Change category
+              </Button>
+            )}
+          </div>
+        }
+        className="!items-end"
+      />
 
       {/* ---- Slim, dismissible new-course notification ---- */}
       {newCount > 0 && (
         <div
           role="status"
-          className="rounded-xl border border-green-default/30 bg-[rgba(45,212,167,0.08)] px-4 py-3 flex items-center justify-between gap-4 flex-wrap animate-fade-up"
+          className="alert alert-success flex items-center justify-between gap-4 flex-wrap"
         >
           <p className="m-0 text-sm flex items-center gap-2 flex-wrap">
-            <span className="chip inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-soft text-green-default border border-green-default/30">
+            <Chip variant="success" size="sm" className="uppercase font-bold">
               {newCount} new
-            </span>
+            </Chip>
             <span>
               New course{newCount > 1 ? 's' : ''} added:{' '}
               <span className="font-semibold">
@@ -281,7 +206,7 @@ function StudentDashboard() {
           className="rounded-2xl border border-[rgba(123,200,255,0.22)] bg-gradient-to-br from-[rgba(16,30,48,0.95)] to-[rgba(11,20,33,0.95)] p-6 flex items-center justify-between gap-6 flex-wrap shadow-[0_8px_32px_rgba(2,10,20,0.4)] animate-fade-up"
         >
           <div className="flex items-center gap-5 min-w-[220px]">
-            <ProgressRing pct={stats.progressPct ?? 0} />
+            <ProgressBarRing percentage={stats.progressPct ?? 0} size={88} />
             <div className="flex flex-col gap-1.5">
               <p className="text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0">Now learning</p>
               <h2 className="font-bold text-lg m-0 leading-snug">{active.course?.title || 'Your course'}</h2>
@@ -290,12 +215,9 @@ function StudentDashboard() {
               </p>
             </div>
           </div>
-          <Link
-            to="/student/my-enrollment"
-            className="inline-flex items-center gap-2 no-underline border border-[rgba(123,200,255,0.3)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl text-sm hover:border-cyan-default/60 hover:shadow-[0_0_20px_rgba(56,215,255,0.2)] transition-all duration-200 focus-visible:outline-2 focus-visible:outline-cyan-default"
-          >
+          <Button renderAs={Link} to="/student/my-enrollment" variant="secondary">
             Resume course →
-          </Link>
+          </Button>
         </section>
       )}
 
@@ -303,7 +225,7 @@ function StudentDashboard() {
       {isPending && (
         <section
           aria-label="Enrollment pending"
-          className="rounded-2xl border border-[rgba(240,200,80,0.3)] bg-[rgba(240,200,80,0.06)] p-5 flex items-center gap-4 flex-wrap animate-fade-up"
+          className="alert alert-warning flex items-center gap-4 flex-wrap animate-fade-up"
         >
           <span className="w-10 h-10 rounded-xl grid place-items-center text-lg bg-[rgba(240,200,80,0.12)]" aria-hidden="true">⏳</span>
           <div className="flex flex-col gap-1">
@@ -330,29 +252,29 @@ function StudentDashboard() {
             <StatCard
               icon="📚"
               iconBg="bg-cyan-soft text-cyan-default"
-              label="Available"
+              title="Available"
               value={courses.length}
-              sub={newCount > 0 ? `${newCount} new in your category` : 'courses in your category'}
+              subtitle={newCount > 0 ? `${newCount} new in your category` : 'courses in your category'}
             />
             <StatCard
               icon="🏆"
               iconBg="bg-green-soft text-green-default"
-              label="Completed"
+              title="Completed"
               value={stats?.completedCourses ?? 0}
-              sub="courses finished"
+              subtitle="courses finished"
             />
             <StatCard
               icon={hasActive ? '🎯' : '💤'}
               iconBg={hasActive ? 'bg-[rgba(56,215,255,0.12)] text-cyan-default' : 'bg-[rgba(148,175,211,0.12)] text-muted'}
-              label="Progress"
+              title="Progress"
               value={stats?.progressPct != null ? `${Math.round(stats.progressPct)}%` : hasActive ? '0%' : '—'}
-              sub={hasActive ? 'current course' : 'no active course'}
+              subtitle={hasActive ? 'current course' : 'no active course'}
             />
           </div>
 
           {/* Recent completions */}
           {(stats?.recentHistory || []).length > 0 && (
-            <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+            <section className="panel p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold m-0 text-base flex items-center gap-2">
                   <span aria-hidden="true">🏅</span> Recently completed
@@ -375,7 +297,7 @@ function StudentDashboard() {
           )}
 
           {/* Available courses in the student's category */}
-          <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+          <section className="panel p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h3 className="font-bold m-0 text-base flex items-center gap-2">
                 <span aria-hidden="true">📚</span> Available courses
@@ -408,9 +330,9 @@ function StudentDashboard() {
                       <div className="flex items-start justify-between gap-3">
                         <h4 className="font-semibold text-sm m-0 leading-snug">{course.title}</h4>
                         {isNew && (
-                          <span className="chip inline-flex shrink-0 items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-soft text-green-default border border-green-default/30">
+                          <Chip variant="success" size="sm" className="uppercase font-bold text-[10px] shrink-0">
                             New
-                          </span>
+                          </Chip>
                         )}
                       </div>
                       <p className="text-xs text-muted m-0 line-clamp-2">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../utils/dashboardPath'
+import { Button, Field, Input, Alert } from '../components/ui'
 
 function Register() {
   const { register } = useAuth()
@@ -32,10 +33,7 @@ function Register() {
           <span className="font-semibold">IS Hub Academy</span>
         </div>
 
-        <Link
-          to="/login"
-          className="text-muted hover:text-cyan-default transition-colors no-underline px-4 py-2 rounded-[10px] border border-transparent hover:border-cyan-default/30"
-        >
+        <Link to="/login" className="btn btn-ghost">
           Login
         </Link>
       </header>
@@ -46,11 +44,9 @@ function Register() {
           className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[420px] h-[220px] rounded-[50%] bg-[radial-gradient(circle,rgba(45,212,167,0.22),transparent_60%)] blur-[24px] pointer-events-none animate-float-glow"
         />
 
-        <div className="w-full max-w-md rounded-2xl border border-[rgba(143,170,205,0.14)] bg-panel-strong backdrop-blur-md shadow-[0_20px_60px_rgba(2,11,23,0.6),0_0_40px_rgba(13,190,255,0.08)] p-8 md:p-10 flex flex-col gap-7 animate-fade-up">
+        <div className="w-full max-w-md panel-strong p-8 md:p-10 flex flex-col gap-7 animate-fade-up shadow-[0_20px_60px_rgba(2,11,23,0.6),0_0_40px_rgba(13,190,255,0.08)]">
           <div>
-            <p className="text-xs font-semibold text-green-default uppercase tracking-[0.18em] m-0 mb-2">
-              Get started
-            </p>
+            <p className="eyebrow text-green-default">Get started</p>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight m-0">
               Create your account
             </h1>
@@ -60,63 +56,44 @@ function Register() {
           </div>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" htmlFor="register-name">
-                First Name
-              </label>
-              <input
+            <Field label="First Name" htmlFor="register-name">
+              <Input
                 id="register-name"
-                className="w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-base placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John"
                 required
               />
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" htmlFor="register-email">
-                Email
-              </label>
-              <input
+            <Field label="Email" htmlFor="register-email">
+              <Input
                 id="register-email"
-                className="w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-base placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="john@example.com"
                 required
               />
-            </div>
+            </Field>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" htmlFor="register-password">
-                Password
-              </label>
-              <input
+            <Field label="Password" htmlFor="register-password">
+              <Input
                 id="register-password"
-                className="w-full bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.14)] rounded-xl px-3.5 py-2.5 text-base placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-cyan-default/50 focus:border-cyan-default/50 transition-all duration-200"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min. 6 characters"
                 required
               />
-            </div>
+            </Field>
 
-            {error && (
-              <p className="m-0 text-red-400 text-sm rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2">
-                {error}
-              </p>
-            )}
+            {error && <Alert tone="error">{error}</Alert>}
 
-            <button
-              type="submit"
-              className="mt-1 inline-flex items-center justify-center bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold py-3 px-4 rounded-xl cursor-pointer shadow-[0_8px_24px_rgba(13,190,255,0.25)] hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(13,190,255,0.35)] active:scale-[0.99] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
+            <Button type="submit" className="mt-1 w-full" size="lg">
               Register
-            </button>
+            </Button>
           </form>
 
           <p className="m-0 text-center text-sm text-muted pt-4 border-t border-[rgba(143,170,205,0.1)]">

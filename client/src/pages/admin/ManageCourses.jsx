@@ -2,6 +2,34 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 import { useAuth } from '../../context/AuthContext'
+import {
+  ContentPage,
+  PageHeader,
+  Button,
+  Field,
+  Input,
+  Textarea,
+  Alert,
+  Chip,
+  SkeletonBlock,
+} from '../../components/ui'
+
+function ManageCoursesSkeleton() {
+  return (
+    <ContentPage aria-busy="true" aria-label="Loading courses">
+      <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="panel p-5 flex flex-col gap-3">
+            <SkeletonBlock className="h-4 w-1/3" />
+            <SkeletonBlock className="h-5 w-3/4" />
+            <SkeletonBlock className="h-3 w-full" />
+            <SkeletonBlock className="h-3 w-4/5" />
+          </div>
+        ))}
+      </div>
+    </ContentPage>
+  )
+}
 
 function ManageCourses() {
   const { user } = useAuth()
@@ -118,28 +146,27 @@ function ManageCourses() {
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return <ManageCoursesSkeleton />
   }
 
   return (
-    <div className="content-page max-w-[1200px] mx-auto w-full p-6">
-      <div className="page-header mb-6">
-        <div>
-          <h1 className="page-title text-2xl md:text-3xl font-black tracking-tight m-0">Manage Courses</h1>
-          <p className="page-subtitle text-sm text-muted mt-1.5">Create, edit, and organize the learning material for your category.</p>
-        </div>
-        <button type="button" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" onClick={() => setShowAdd((v) => !v)}>
-          {showAdd ? 'Cancel' : 'Add Course'}
-        </button>
-      </div>
+    <ContentPage>
+      <PageHeader
+        title="Manage Courses"
+        subtitle="Create, edit, and organize the learning material for your category."
+        action={
+          <Button variant={showAdd ? 'secondary' : 'primary'} onClick={() => setShowAdd((v) => !v)}>
+            {showAdd ? 'Cancel' : 'Add Course'}
+          </Button>
+        }
+      />
 
-      {error && <p className="form-error text-red-400 text-sm m-0">{error}</p>}
+      {error && <Alert tone="error" className="mb-5">{error}</Alert>}
 
       {showAdd && (
-        <form onSubmit={handleAdd} className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6 form-grid grid gap-4 sm:grid-cols-2">
-          <div className="field flex flex-col gap-1.5">
-            <label htmlFor="course-title">Title</label>
-            <input
+        <form onSubmit={handleAdd} className="panel-shell p-5 mb-6 grid gap-4 sm:grid-cols-2">
+          <Field label="Title" htmlFor="course-title">
+            <Input
               id="course-title"
               type="text"
               value={addTitle}
@@ -147,89 +174,90 @@ function ManageCourses() {
               required
               placeholder="Course title"
             />
-          </div>
+          </Field>
 
-          <div className="field flex flex-col gap-1.5">
-            <label htmlFor="course-description">Description</label>
-            <textarea
+          <Field label="Description" htmlFor="course-description">
+            <Textarea
               id="course-description"
               value={addDescription}
               onChange={(e) => setAddDescription(e.target.value)}
               rows="4"
               placeholder="Write a short description"
             />
-          </div>
+          </Field>
 
-          <button type="submit" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" disabled={submitting}>
+          <Button type="submit" disabled={submitting}>
             {submitting ? 'Saving...' : 'Save Course'}
-          </button>
+          </Button>
         </form>
       )}
 
-      {courses.length === 0 && !loading && <div className="section-shell rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.8)] p-5 mb-6"><p className="page-subtitle text-sm text-muted mt-1.5">No courses in your category yet.</p></div>}
+      {courses.length === 0 && !loading && (
+        <div className="panel-shell p-5 mb-6">
+          <p className="page-subtitle">No courses in your category yet.</p>
+        </div>
+      )}
 
-      <div className="card-grid grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {courses.map((course) => (
-          <article key={course.id} className="list-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
-            <div className="card-top flex justify-between items-start gap-4">
+          <article key={course.id} className="panel p-5 flex flex-col gap-3 transition-colors duration-200 hover:border-cyan-default/30">
+            <div className="flex justify-between items-start gap-4">
               <div>
-                <p className="eyebrow text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Course</p>
-                <h3>{course.title}</h3>
+                <p className="eyebrow">Course</p>
+                <h3 className="font-bold text-base m-0">{course.title}</h3>
               </div>
-              <span className="chip neutral inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[rgba(148,175,211,0.12)] border border-[rgba(143,170,205,0.18)] text-muted">Active</span>
+              <Chip variant="neutral" size="sm">Active</Chip>
             </div>
 
-            <p>{course.description || 'No description.'}</p>
+            <p className="text-sm text-muted leading-relaxed m-0">{course.description || 'No description.'}</p>
 
-            <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
-              <Link to={`/admin/courses/${course.id}`} state={{ course }} className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="flex flex-wrap items-center gap-2.5 mt-2">
+              <Link to={`/admin/courses/${course.id}`} state={{ course }} className="btn btn-secondary">
                 Modules
               </Link>
-              <button type="button" className="secondary-btn inline-flex items-center justify-center no-underline border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] font-semibold px-5 py-2.5 rounded-xl hover:border-cyan-default/50 hover:bg-[rgba(18,30,46,0.88)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" onClick={() => startEdit(course)} disabled={submitting}>
+              <Button variant="secondary" onClick={() => startEdit(course)} disabled={submitting}>
                 Edit
-              </button>
-              <button type="button" className="danger-btn inline-flex items-center justify-center no-underline border border-red-500/30 bg-red-500/10 text-red-300 font-semibold px-5 py-2.5 rounded-xl hover:bg-red-500/20 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" onClick={() => handleDelete(course.id)} disabled={submitting}>
+              </Button>
+              <Button variant="danger" onClick={() => handleDelete(course.id)} disabled={submitting}>
                 Delete
-              </button>
+              </Button>
             </div>
 
             {editingId === course.id && (
-              <form onSubmit={(e) => handleUpdate(e, course.id)} className="form-grid grid gap-4 sm:grid-cols-2">
-                <div className="field flex flex-col gap-1.5">
-                  <label htmlFor={`edit-title-${course.id}`}>Title</label>
-                  <input
+              <form onSubmit={(e) => handleUpdate(e, course.id)} className="grid gap-4 sm:grid-cols-2 mt-2">
+                <Field label="Title" htmlFor={`edit-title-${course.id}`}>
+                  <Input
                     id={`edit-title-${course.id}`}
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     required
                   />
-                </div>
+                </Field>
 
-                <div className="field flex flex-col gap-1.5">
-                  <label htmlFor={`edit-description-${course.id}`}>Description</label>
-                  <textarea
+                <Field label="Description" htmlFor={`edit-description-${course.id}`}>
+                  <Textarea
                     id={`edit-description-${course.id}`}
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     rows="3"
                   />
-                </div>
+                </Field>
 
-                <div className="button-row flex flex-wrap items-center gap-2.5 mt-2">
-                  <button type="submit" className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer" disabled={submitting}>
+                <div className="flex flex-wrap items-center gap-2.5 mt-2">
+                  <Button type="submit" disabled={submitting}>
                     {submitting ? 'Saving...' : 'Save'}
-                  </button>
-                  <button type="button" className="ghost-btn inline-flex items-center justify-center no-underline text-muted hover:text-cyan-default px-4 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" onClick={cancelEdit} disabled={submitting}>
+                  </Button>
+                  <Button variant="ghost" onClick={cancelEdit} disabled={submitting}>
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
           </article>
         ))}
       </div>
-    </div>
+    </ContentPage>
   )
 }
 

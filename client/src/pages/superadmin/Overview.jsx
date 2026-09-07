@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
+import { formatDate } from '../../utils/formatters'
+import { StatCard, SkeletonBlock, Chip } from '../../components/ui'
 
 // Super admin statistical dashboard. Data from GET /api/admin/overview:
 // platform counts, global enrollment status distribution + completion rate,
@@ -24,10 +26,6 @@ const STATUS_LABELS = {
   rejected: 'Rejected',
 }
 
-function SkeletonBlock({ className = '' }) {
-  return <div className={`rounded bg-[rgba(148,175,211,0.15)] animate-shimmer ${className}`} />
-}
-
 function OverviewSkeleton() {
   return (
     <div className="flex flex-col gap-6" aria-busy="true" aria-label="Loading overview">
@@ -37,45 +35,32 @@ function OverviewSkeleton() {
       </div>
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 max-sm:grid-cols-1">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3">
+          <div key={i} className="stat-card">
             <SkeletonBlock className="h-3 w-16" />
             <SkeletonBlock className="h-8 w-12" />
           </div>
         ))}
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 h-56" />
-        <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 h-56" />
+        <div className="panel h-56" />
+        <div className="panel h-56" />
       </div>
-      <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 h-80" />
-    </div>
-  )
-}
-
-function StatCard({ icon, iconBg, title, value, subtitle }) {
-  return (
-    <div className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 flex flex-col gap-3 min-h-[112px] transition-colors duration-200 hover:border-cyan-default/25">
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted font-semibold">{title}</span>
-        <span className={`w-9 h-9 rounded-xl grid place-items-center text-base ${iconBg}`} aria-hidden="true">{icon}</span>
-      </div>
-      <div className="text-3xl font-extrabold tracking-tight leading-none">{value}</div>
-      {subtitle && <p className="text-xs text-muted m-0">{subtitle}</p>}
+      <div className="panel h-80" />
     </div>
   )
 }
 
 function statusChip(status) {
   const map = {
-    completed: 'bg-green-soft text-green-default',
-    pending: 'bg-yellow-500/10 text-yellow-300',
-    rejected: 'bg-pink-500/10 text-pink-300',
-    in_progress: 'bg-cyan-soft text-cyan-default',
+    completed: 'success',
+    pending: 'warning',
+    rejected: 'danger',
+    in_progress: 'cyan',
   }
   return (
-    <span className={`text-xs px-2.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${map[status] || 'bg-[rgba(148,175,211,0.12)] text-muted'}`}>
+    <Chip variant={map[status] || 'neutral'} className="shrink-0">
       {STATUS_LABELS[status] || status}
-    </span>
+    </Chip>
   )
 }
 
@@ -142,11 +127,9 @@ function CategoryExplorerItem({ category, expanded, onToggle, studentsByCategory
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-sm font-medium truncate">{course.title}</span>
-                      <span className="text-[11px] text-muted">created {new Date(course.createdAt).toLocaleDateString()}</span>
+                      <span className="text-[11px] text-muted">created {formatDate(course.createdAt)}</span>
                     </div>
-                    <span className="chip inline-flex shrink-0 items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-soft text-cyan-default border border-cyan-default/25">
-                      👥 {course.enrollments} enrolled
-                    </span>
+                    <Chip variant="cyan" size="sm">👥 {course.enrollments} enrolled</Chip>
                   </button>
 
                   {courseOpen && (
@@ -175,7 +158,7 @@ function CategoryExplorerItem({ category, expanded, onToggle, studentsByCategory
                                 <span className="text-xs text-muted block truncate">{row.email}</span>
                               </div>
                               <span className="text-xs text-muted shrink-0 hidden sm:block">
-                                {new Date(row.enrolled_at).toLocaleDateString()}
+                                {formatDate(row.enrolled_at)}
                               </span>
                               {statusChip(row.status)}
                             </li>
@@ -250,11 +233,7 @@ function Overview() {
   }
 
   if (error) {
-    return (
-      <p className="m-0 text-red-400 text-sm rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2">
-        {error}
-      </p>
-    )
+    return <p className="alert alert-error">{error}</p>
   }
 
   const completionsPerCategory = stats.completionsPerCategory || []
@@ -289,9 +268,6 @@ function Overview() {
     : '#102033'
   const donutSummary = statusSegments.map((s) => `${s.value} ${STATUS_LABELS[s.key]}`).join(', ')
 
-  const fmtDate = (iso) =>
-    iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
-
   // Category explorer filtering (by category or course title).
   const q = courseSearch.trim().toLowerCase()
   const visibleCategories = coursesPerCategory
@@ -305,8 +281,8 @@ function Overview() {
     <div className="flex flex-col gap-6">
       {/* Page header */}
       <div className="animate-fade-up">
-        <p className="text-xs font-semibold text-cyan-default uppercase tracking-[0.16em] m-0 mb-1.5">Executive summary</p>
-        <h1 className="text-2xl md:text-3xl font-black tracking-tight m-0">Platform Overview</h1>
+        <p className="eyebrow">Executive summary</p>
+        <h1 className="page-title text-2xl md:text-3xl">Platform Overview</h1>
       </div>
 
       {/* Stat cards */}
@@ -321,10 +297,10 @@ function Overview() {
 
       {/* Analytics row 1: status donut + completions per category bars */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+        <section className="panel p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-bold m-0 text-base">Enrollment status</h3>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-soft border border-green-default/25 text-green-default">{totalEnrollments} total</span>
+            <Chip variant="success" size="sm">{totalEnrollments} total</Chip>
           </div>
 
           {totalEnrollments === 0 ? (
@@ -355,27 +331,24 @@ function Overview() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-bold m-0 text-base">Completions per category</h3>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-soft text-cyan-default">{totalCompletions} total</span>
-          </div>
+        <section className="panel p-5">
+          <h3 className="font-bold m-0 text-base mb-4">Completions per category</h3>
           {completionsPerCategory.length === 0 ? (
-            <p className="text-sm text-muted text-center py-8 m-0">No categories yet.</p>
+            <p className="text-sm text-muted text-center py-8 m-0">No completions yet.</p>
           ) : (
             <div className="flex flex-col gap-4">
               {completionsPerCategory.map((c, i) => {
                 const max = Math.max(...completionsPerCategory.map((x) => Number(x.completions || 0)), 1)
                 const pct = Math.round((Number(c.completions || 0) / max) * 100)
-                const colors = ['#38d4ff', '#2dd4bf', '#8b5cf6', '#f59e0b', '#f472b6', '#a3e635']
+                const colors = ['#38d7ff', '#2dd4a7', '#9c7bff', '#f59e0b', '#f472b6']
                 return (
-                  <div key={c.category_id || c.name} className="flex flex-col gap-1.5">
+                  <div key={c.name} className="flex flex-col gap-1.5">
                     <div className="flex justify-between items-center text-sm gap-3">
                       <span className="truncate">{c.name}</span>
                       <strong className="shrink-0">{c.completions}</strong>
                     </div>
                     <div className="h-2 rounded-full bg-[rgba(15,27,40,0.8)] overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: colors[i % colors.length] }} />
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: colors[i % colors.length] }} />
                     </div>
                   </div>
                 )
@@ -385,29 +358,21 @@ function Overview() {
         </section>
       </div>
 
-      {/* ---- Category explorer: courses per category + enrolled students per course ---- */}
-      <section className="rounded-2xl border border-[rgba(123,200,255,0.18)] bg-[rgba(13,22,35,0.9)] p-5 animate-fade-up">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-          <h3 className="font-bold m-0 text-base flex items-center gap-2">
-            <span aria-hidden="true">🗂️</span> Category explorer
-          </h3>
+      {/* Category explorer */}
+      <section className="panel p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+          <h3 className="font-bold m-0 text-base">Category explorer</h3>
           <input
             type="search"
+            placeholder="Search categories or courses..."
             value={courseSearch}
             onChange={(ev) => setCourseSearch(ev.target.value)}
-            placeholder="Search categories or courses…"
             aria-label="Search categories or courses"
-            className="text-sm bg-[rgba(9,17,27,0.6)] border border-[rgba(143,170,205,0.18)] rounded-xl px-3 py-2 outline-none focus:border-cyan-default/50 placeholder:text-muted min-w-[220px]"
+            className="input-field max-w-xs"
           />
         </div>
-
-        {coursesPerCategory.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 text-center py-8">
-            <span className="text-3xl" aria-hidden="true">🗂️</span>
-            <p className="text-sm text-muted m-0">No categories yet.</p>
-          </div>
-        ) : visibleCategories.length === 0 ? (
-          <p className="text-sm text-muted text-center py-8 m-0">No categories or courses match your search.</p>
+        {visibleCategories.length === 0 ? (
+          <p className="text-sm text-muted text-center py-8 m-0">No categories match your search.</p>
         ) : (
           <div className="flex flex-col gap-3">
             {visibleCategories.map((category) => (
@@ -426,10 +391,10 @@ function Overview() {
 
       {/* Analytics row 2: students per category + recent signups */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+        <section className="panel p-5">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-bold m-0 text-base">Students per category</h3>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 border border-purple/25 text-purple">{stats.totalStudents} students</span>
+            <Chip variant="cyan" size="sm">{stats.totalStudents} students</Chip>
           </div>
           {studentsPerCategory.length === 0 ? (
             <p className="text-sm text-muted text-center py-8 m-0">No categories yet.</p>
@@ -454,7 +419,7 @@ function Overview() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5">
+        <section className="panel p-5">
           <h3 className="font-bold m-0 text-base mb-4">Recent signups</h3>
           {(stats.recentStudents || []).length === 0 ? (
             <p className="text-sm text-muted text-center py-8 m-0">No students yet.</p>
@@ -467,7 +432,7 @@ function Overview() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="text-sm font-medium block truncate">{s.name}</span>
-                    <span className="text-xs text-muted block truncate">{s.category || 'Uncategorized'} · joined {fmtDate(s.joined_at)}</span>
+                    <span className="text-xs text-muted block truncate">{s.category || 'Uncategorized'} · joined {formatDate(s.joined_at)}</span>
                   </div>
                 </li>
               ))}

@@ -1,0 +1,13 @@
+// Barrel — import all shared UI primitives from one place:
+//   import { Button, Input, Field, PageHeader, ... } from '../components/ui'
+export { default as Button } from './Button'
+export { default as Field } from './Field'
+export { default as Input } from './Input'
+export { default as Textarea } from './Textarea'
+export { default as Select } from './Select'
+export { default as Alert } from './Alert'
+export { default as Chip } from './Chip'
+export { default as StatCard } from './StatCard'
+export { default as SkeletonBlock } from './SkeletonBlock'
+export { default as PageHeader } from './PageHeader'
+export { default as ContentPage } from './ContentPage'
