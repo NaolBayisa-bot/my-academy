@@ -41,6 +41,8 @@
       #020b17;
     color: var(--text);
     font-family: Inter, 'Segoe UI', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
   }
 
   button,
@@ -238,6 +240,7 @@
     padding: 0.625rem 1.25rem;
     font-size: 0.9375rem;
     line-height: 1.2;
+    min-height: 2.75rem;
   }
   .btn:disabled,
   .btn[disabled] {
@@ -483,7 +486,12 @@
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+  @media (min-width: 768px) {
+    .content-page {
+      padding: 1.5rem;
+    }
   }
 
   /* ── Stat Card shell ────────────────────────────────────── */
