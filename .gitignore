@@ -1,1 +1,17 @@
 .env
+# server 
+server/node_modules
+server/.env
+server/dist
+server/npm-debug.log*
+server/Dockerfile
+server/docker-compose.yml   
+
+#client
+client/node_modules
+client/.env
+client/dist
+client/npm-debug.log*
+client/logs
+client/Dockerfile
+
