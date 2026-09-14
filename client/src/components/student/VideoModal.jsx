@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+        import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Button } from '../ui'
 import LessonContent from './LessonContent'
 
 /**
@@ -68,7 +67,6 @@ export default function VideoModal({
   const ytPlayerRef = useRef(null)
   const vimeoPlayerRef = useRef(null)
   const embedFrameRef = useRef(null)
-  const videoStartedRef = useRef(false)
 
   const [view, setView] = useState({ title, url, content, done: isDone })
   const [phase, setPhase] = useState('idle') // idle | finishing | success
@@ -85,7 +83,6 @@ export default function VideoModal({
     setPhase('idle')
     setAutoDetect(null)
     setVideoStarted(false)
-    videoStartedRef.current = false
     ytPlayerRef.current?.destroy?.()
     ytPlayerRef.current = null
   }, [title, url, content, isDone])
@@ -121,7 +118,7 @@ export default function VideoModal({
   const notStarted = isVideoLesson && !videoStarted && !view.done
 
   const finishFlow = async () => {
-    if (phase !== 'idle' || !videoStartedRef.current) return
+    if (phase !== 'idle' || notStarted) return
     setPhase('finishing')
     let result
     try {
@@ -169,7 +166,6 @@ export default function VideoModal({
             onStateChange: (e) => {
               if (disposed) return
               if (e.data === window.YT.PlayerState.PLAYING) {
-                videoStartedRef.current = true
                 setVideoStarted(true)
                 return
               }
@@ -228,61 +224,6 @@ export default function VideoModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId])
 
-// ---- Embeddable (non-YouTube) player bootstrap for the CURRENT video -----
-  const embedSrc = playback && playback.kind === 'embed' ? playback.src : null
-
-  useEffect(() => {
-    if (!embedSrc) return undefined
-    let disposed = false
-
-    const build = () => {
-      if (disposed || !window.Vimeo || !embedFrameRef.current) return
-      try {
-        const player = window.Vimeo.Player(embedFrameRef.current)
-        vimeoPlayerRef.current = player
-        player.on('play', () => {
-          if (!disposed) {
-            videoStartedRef.current = true
-            setVideoStarted(true)
-          }
-        })
-        player.on('ended', () => {
-          if (!disposed) finishFlow()
-        })
-      } catch {
-        // No event API (non-Vimeo embed): unlock so students aren't trapped.
-        if (!disposed) {
-          videoStartedRef.current = true
-          setVideoStarted(true)
-        }
-      }
-    }
-
-    if (window.Vimeo && window.Vimeo.Player) {
-      build()
-    } else {
-      const s = document.createElement('script')
-      s.src = 'https://player.vimeo.com/api/player.js'
-      s.onload = build
-      document.body.appendChild(s)
-      const failTimer = setTimeout(() => {
-        if (!disposed) {
-          videoStartedRef.current = true
-          setVideoStarted(true)
-        }
-      }, 6000)
-      return () => {
-        disposed = true
-        clearTimeout(failTimer)
-        vimeoPlayerRef.current = null
-      }
-    }
-    const cleanup = () => {
-      disposed = true
-    }
-    return cleanup
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [embedSrc])
   const hasNotes = !!(view.content && view.content.trim())
 
   return createPortal(
@@ -324,7 +265,6 @@ export default function VideoModal({
           {playback && playback.kind === 'embed' && (
             <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
               <iframe
-                ref={embedFrameRef}
                 src={playback.src}
                 title={view.title || 'Lesson video'}
                 className="h-full w-full"
@@ -338,9 +278,14 @@ export default function VideoModal({
               <p className="m-0 mb-3 text-sm text-muted">
                 This video can’t be embedded here — open it in a new tab instead.
               </p>
-              <Button renderAs="a" href={view.url} target="_blank" rel="noopener noreferrer">
+              <a
+                href={view.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="primary-btn inline-flex items-center justify-center no-underline bg-gradient-to-r from-cyan-default to-cyan-strong text-[#031320] font-bold px-5 py-2.5 rounded-xl shadow-[0_6px_18px_rgba(13,190,255,0.22)] hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+              >
                 Open in new tab ↗
-              </Button>
+              </a>
             </div>
           )}
           </div>
@@ -363,29 +308,26 @@ export default function VideoModal({
               ? '✓ Completed!'
               : phase === 'finishing'
                 ? 'Saving…'
-                : notStarted
-                  ? '▶ Start the video to enable completion'
-                  : autoDetect === true
-                    ? 'Auto-completes when the video ends'
-                    : 'Finished watching? Mark it complete below.'}
+                : autoDetect === true
+                  ? 'Auto-completes when the video ends'
+                  : 'Finished watching? Mark it complete below.'}
           </span>
           {view.done ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-green-default/25 bg-green-soft px-3 py-1.5 text-xs font-semibold text-green-default">
               ✓ Completed
             </span>
           ) : (
-            <Button
+            <button
               type="button"
               onClick={() => {
                 if (phase !== 'idle') return
                 finishFlow()
               }}
-              disabled={phase !== 'idle' || notStarted}
-              title={notStarted ? 'Start the video to unlock completion' : undefined}
-              className={notStarted ? 'blur-[2px]' : ''}
+              disabled={phase !== 'idle'}
+              className="primary-btn inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 no-underline rounded-xl bg-gradient-to-r from-cyan-default to-cyan-strong px-5 py-2.5 font-bold text-[#031320] shadow-[0_6px_18px_rgba(13,190,255,0.22)] transition-all duration-200 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-default/60"
             >
               {phase === 'finishing' ? 'Saving…' : phase === 'success' ? '✓ Done' : '✓ Complete & continue'}
-            </Button>
+            </button>
           )}
         </div>
       </div>
