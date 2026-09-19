@@ -1,371 +1,286 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/Footer'
 import { Button } from '../components/ui'
 
-const categories = [
+const categoryRoadmaps = [
   {
-    id: 1,
     title: 'Cybersecurity',
+    accent: 'red',
+    glowColor: 'rgba(239, 68, 68, 0.16)',
+    gradient: 'cyber-gradient',
     icon: '🛡️',
-    color: 'from-red-500 to-red-600',
-    glowColor: 'rgba(239, 68, 68, 0.2)',
-    description: 'Master network security, ethical hacking, and cryptography',
-    students: '2,340',
-    courses: 12,
-    difficulty: 'Advanced',
+    description: 'Network security, ethical hacking, cryptography, and security operations.',
+    nodes: [
+      {
+        title: 'Security Fundamentals',
+        description: 'Learn core security concepts, threat modeling, and risk assessment methodologies.',
+        duration: '4 weeks',
+        skills: ['Threat Analysis', 'Risk Assessment', 'Security Policies', 'Compliance'],
+      },
+      {
+        title: 'Network Security',
+        description: 'Master firewall configuration, IDS/IPS, VPNs, and secure network architecture.',
+        duration: '6 weeks',
+        skills: ['Firewalls', 'IDS/IPS', 'VPNs', 'Network Hardening'],
+      },
+      {
+        title: 'Ethical Hacking',
+        description: 'Hands-on penetration testing, vulnerability assessment, and exploit development.',
+        duration: '8 weeks',
+        skills: ['Pen Testing', 'Reconnaissance', 'Exploitation', 'Reporting'],
+      },
+      {
+        title: 'Cryptography & Compliance',
+        description: 'Deep dive into encryption algorithms, PKI, and security compliance frameworks.',
+        duration: '4 weeks',
+        skills: ['Encryption', 'PKI', 'ISO 27001', 'GDPR'],
+      },
+    ],
   },
   {
-    id: 2,
     title: 'Development',
+    accent: 'blue',
+    glowColor: 'rgba(59, 130, 246, 0.16)',
+    gradient: 'dev-gradient',
     icon: '💻',
-    color: 'from-blue-500 to-blue-600',
-    glowColor: 'rgba(59, 130, 246, 0.2)',
-    description: 'Learn full-stack development and modern frameworks',
-    students: '5,890',
-    courses: 18,
-    difficulty: 'Intermediate',
+    description: 'Software engineering, web development, mobile apps, and DevOps.',
+    nodes: [
+      {
+        title: 'Frontend Fundamentals',
+        description: 'HTML, CSS, JavaScript, TypeScript, and modern frontend frameworks.',
+        duration: '6 weeks',
+        skills: ['HTML/CSS', 'JavaScript', 'TypeScript', 'React'],
+      },
+      {
+        title: 'Backend Development',
+        description: 'Server-side programming, REST APIs, databases, and authentication.',
+        duration: '6 weeks',
+        skills: ['Node.js', 'NestJS', 'PostgreSQL', 'REST APIs'],
+      },
+      {
+        title: 'Mobile & DevOps',
+        description: 'Cross-platform mobile development, CI/CD pipelines, and cloud deployment.',
+        duration: '6 weeks',
+        skills: ['React Native', 'Docker', 'CI/CD', 'Cloud Services'],
+      },
+      {
+        title: 'Full-Stack Project',
+        description: 'Capstone project building a complete production-ready application.',
+        duration: '4 weeks',
+        skills: ['Architecture', 'Testing', 'Deployment', 'Documentation'],
+      },
+    ],
   },
   {
-    id: 3,
     title: 'Networking',
+    accent: 'green',
+    glowColor: 'rgba(34, 197, 94, 0.15)',
+    gradient: 'net-gradient',
     icon: '🌐',
-    color: 'from-green-500 to-green-600',
-    glowColor: 'rgba(34, 197, 94, 0.2)',
-    description: 'Build expertise in network administration and infrastructure',
-    students: '1,560',
-    courses: 10,
-    difficulty: 'Intermediate',
+    description: 'Network administration, routing, switching, and cloud infrastructure.',
+    nodes: [
+      {
+        title: 'Networking Basics',
+        description: 'OSI model, TCP/IP, subnetting, and basic network troubleshooting.',
+        duration: '4 weeks',
+        skills: ['OSI Model', 'TCP/IP', 'Subnetting', 'Troubleshooting'],
+      },
+      {
+        title: 'Routing & Switching',
+        description: 'Configure routers and switches, VLANs, STP, and dynamic routing protocols.',
+        duration: '8 weeks',
+        skills: ['Routing', 'Switching', 'VLANs', 'OSPF/EIGRP'],
+      },
+      {
+        title: 'Cloud Infrastructure',
+        description: 'AWS/Azure networking, VPC design, load balancing, and auto-scaling.',
+        duration: '6 weeks',
+        skills: ['AWS VPC', 'Load Balancing', 'Auto Scaling', 'DNS'],
+      },
+      {
+        title: 'Network Automation',
+        description: 'Scripting network configurations, Ansible, and network monitoring tools.',
+        duration: '4 weeks',
+        skills: ['Python', 'Ansible', 'SNMP', 'Monitoring'],
+      },
+    ],
   },
   {
-    id: 4,
     title: 'Creative Works',
+    accent: 'purple',
+    glowColor: 'rgba(168, 85, 247, 0.15)',
+    gradient: 'creative-gradient',
     icon: '🎨',
-    color: 'from-purple-500 to-purple-600',
-    glowColor: 'rgba(168, 85, 247, 0.2)',
-    description: 'Create stunning designs and visual content',
-    students: '3,210',
-    courses: 14,
-    difficulty: 'Beginner',
+    description: 'Graphic design, video editing, UI/UX, and digital content creation.',
+    nodes: [
+      {
+        title: 'Design Fundamentals',
+        description: 'Color theory, typography, composition, and design principles.',
+        duration: '4 weeks',
+        skills: ['Color Theory', 'Typography', 'Layout', 'Branding'],
+      },
+      {
+        title: 'UI/UX Design',
+        description: 'User research, wireframing, prototyping, and usability testing.',
+        duration: '6 weeks',
+        skills: ['Wireframing', 'Figma', 'Prototyping', 'User Testing'],
+      },
+      {
+        title: 'Motion & Video',
+        description: 'Animation principles, video editing, motion graphics, and post-production.',
+        duration: '6 weeks',
+        skills: ['After Effects', 'Premiere Pro', 'Animation', 'Color Grading'],
+      },
+      {
+        title: 'Digital Portfolio',
+        description: 'Build a professional portfolio showcasing your creative work.',
+        duration: '4 weeks',
+        skills: ['Portfolio', 'Presentation', 'Freelancing', 'Personal Brand'],
+      },
+    ],
   },
-]
-
-const features = [
-  {
-    icon: '📚',
-    title: 'Expert-Led Courses',
-    description: 'Learn from industry professionals with years of experience',
-  },
-  {
-    icon: '🎯',
-    title: 'Structured Paths',
-    description: 'Follow carefully designed learning roadmaps',
-  },
-  {
-    icon: '🏆',
-    title: 'Certifications',
-    description: 'Earn recognized certificates upon completion',
-  },
-  {
-    icon: '👥',
-    title: 'Community',
-    description: 'Connect with thousands of learners worldwide',
-  },
-  {
-    icon: '⚡',
-    title: 'Hands-On Projects',
-    description: 'Build real-world projects and portfolio pieces',
-  },
-  {
-    icon: '🚀',
-    title: 'Career Support',
-    description: 'Get guidance and support for your career growth',
-  },
-]
-
-const stats = [
-  { number: '10K+', label: 'Active Learners', icon: '👨‍🎓' },
-  { number: '50+', label: 'Expert Courses', icon: '📖' },
-  { number: '95%', label: 'Satisfaction Rate', icon: '⭐' },
-  { number: '24/7', label: 'Community Support', icon: '💬' },
 ]
 
 const steps = [
   {
-    number: '01',
+    number: '1',
     title: 'Register',
-    description: 'Create your account and choose your learning path',
-    icon: '📝',
+    description: 'Create an account and choose the learning path that matches your goals.',
   },
   {
-    number: '02',
+    number: '2',
     title: 'Get Approved',
-    description: 'Our team reviews your profile and grants access',
-    icon: '✅',
+    description: 'Our team reviews your profile and confirms your access to the right category.',
   },
   {
-    number: '03',
+    number: '3',
     title: 'Start Learning',
-    description: 'Access courses, build projects, and grow your skills',
-    icon: '🚀',
+    description: 'Access training, complete learning modules, and track your progress.',
   },
 ]
 
 function LandingPage() {
-  const [expandedCategory, setExpandedCategory] = useState(null)
-  const [scrollProgress, setScrollProgress] = useState(0)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const windowHeight = document.documentElement.scrollHeight - window.innerHeight
-      const scrolled = window.scrollY
-      setScrollProgress(scrolled / windowHeight)
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   return (
-    <div className="bg-[#0a1428] text-white overflow-hidden">
-      {/* Scroll Progress Bar */}
-      <div
-        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-cyan-400 to-blue-500 z-50 transition-all duration-300"
-        style={{ width: `${scrollProgress * 100}%` }}
-      />
-
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
-
-      {/* Header */}
-      <header className="relative z-40 sticky top-0 backdrop-blur-md bg-[#0a1428]/80 border-b border-cyan-500/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 no-underline hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center font-black text-[#0a1428] text-sm">
-              IS
-            </div>
-            <span className="font-bold text-lg hidden sm:inline">IS Hub</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#categories" className="text-sm text-gray-300 hover:text-cyan-400 transition-colors">Categories</a>
-            <a href="#features" className="text-sm text-gray-300 hover:text-cyan-400 transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-gray-300 hover:text-cyan-400 transition-colors">How It Works</a>
-          </nav>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/login"
-              className="text-sm px-3 sm:px-4 py-2 rounded-lg text-cyan-400 hover:bg-cyan-500/10 transition-all"
-            >
-              Login
-            </Link>
-            <Button renderAs={Link} to="/register" size="sm" className="text-xs sm:text-sm">
-              Get Started
-            </Button>
+    <div className="page-shell">
+      <header className="site-header w-[min(1200px,calc(100%-48px))] mx-auto pt-[22px] pb-2.5 flex items-center justify-between border-b border-[rgba(148,175,211,0.15)] max-md:flex-wrap max-md:gap-3">
+        <div className="brand-block inline-flex items-center gap-2.5">
+          <div className="brand-mark bg-gradient-to-br from-cyan-default to-cyan-strong text-[#021522] font-black text-[0.8rem] rounded-lg grid place-items-center w-7 h-7 shadow-[0_0_20px_rgba(56,215,255,0.35)]">
+            IS
           </div>
+          <span className="brand-name font-semibold">IS Hub Academy</span>
+        </div>
+
+        <div className="header-actions flex items-center gap-3">
+          <Link
+            to="/login"
+            className="ghost-link text-muted hover:text-cyan-default transition-colors no-underline px-4 py-2.5 rounded-[10px]"
+          >
+            Login
+          </Link>
+          <Button renderAs={Link} to="/register" size="sm">
+            Get started
+          </Button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-20 sm:py-24 md:py-32">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 mb-6 animate-fade-in">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs sm:text-sm text-cyan-300 font-medium">Welcome to IS Hub Academy</span>
+      <main className="landing-main relative z-[1] w-[min(1200px,calc(100%-48px))] mx-auto">
+        <section className="hero-section relative py-24 md:py-32 text-center animate-fade-up">
+          <div
+            className="hero-glow absolute -inset-x-1/4 -top-10 h-[220px] rounded-[50%] bg-[radial-gradient(circle,rgba(32,214,255,0.35),transparent_60%)] blur-[18px] pointer-events-none animate-float-glow"
+            aria-hidden="true"
+          />
+          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[rgba(123,200,255,0.25)] bg-[rgba(12,21,34,0.7)] px-4 py-1.5 text-xs uppercase tracking-[0.18em] text-muted mb-6">
+            <span className="hero-badge-dot w-2 h-2 rounded-full bg-green-default animate-pulse-soft" aria-hidden="true" />
+            <span>i s h u b — v1.0.0</span>
           </div>
-
-          {/* Main Heading */}
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black mb-6 leading-tight animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Master Your Skills
-            </span>
-            <br />
-            <span className="text-white">Shape Your Future</span>
+          <h1 className="hero-title text-4xl md:text-6xl font-black tracking-tight m-0 mb-4 leading-tight">
+            Learn. Build. Innovate.
           </h1>
-
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Learn from industry experts. Build real projects. Earn certifications. Join thousands of successful learners at IS Hub Academy and transform your career.
+          <p className="hero-subtitle text-base md:text-lg text-muted max-w-[560px] mx-auto mb-8 leading-relaxed">
+            IS Hub Academy is the training platform for Haramaya University&apos;s
+            Information System Hub. Build real skills in Cybersecurity, Development,
+            Networking, and Creative Works.
           </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-12 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-            <Button renderAs={Link} to="/register" size="lg" className="w-full sm:w-auto">
-              Start Learning Today
+          <div className="hero-actions flex items-center justify-center gap-4 flex-wrap">
+            <Button renderAs={Link} to="/register" size="lg">
+              Get started
             </Button>
-            <button className="w-full sm:w-auto px-6 py-3 rounded-lg border border-cyan-500/50 text-cyan-400 font-semibold hover:bg-cyan-500/10 transition-all flex items-center justify-center gap-2">
-              <span>▶</span>
-              <span>Watch Demo</span>
-            </button>
+            <Button renderAs={Link} to="/login" variant="secondary" size="lg">
+              Login
+            </Button>
           </div>
+        </section>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-16 pt-12 border-t border-gray-800">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="text-center group hover:scale-105 transition-transform">
-                <div className="text-2xl mb-2">{stat.icon}</div>
-                <div className="text-2xl sm:text-3xl font-black text-cyan-400">{stat.number}</div>
-                <div className="text-xs sm:text-sm text-gray-500 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        <section className="category-section py-16">
+          <h2 className="text-3xl font-bold text-center m-0 mb-2">Explore Our Categories</h2>
+          <p className="text-muted text-center mb-10">Click on a category to see the full learning roadmap.</p>
 
-      {/* Features Grid */}
-      <section id="features" className="relative z-10 py-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-center mb-4">Why Choose IS Hub?</h2>
-          <p className="text-gray-400 text-center mb-16 text-sm sm:text-base">Everything you need to accelerate your learning and career growth</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, idx) => (
-              <div
-                key={idx}
-                className="group rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/50 to-gray-900/20 p-6 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20"
-              >
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
-                <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-400">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      <section id="categories" className="relative z-10 py-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-center mb-4">Learning Categories</h2>
-          <p className="text-gray-400 text-center mb-16 text-sm sm:text-base">Choose your path and start your journey</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categories.map((category) => (
+          <div className="category-grid grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-md:grid-cols-2">
+            {categoryRoadmaps.map((category) => (
               <button
-                key={category.id}
-                onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
-                className="group relative overflow-hidden rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/60 to-gray-900/20 p-6 text-left cursor-pointer hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg h-full"
-                style={{ boxShadow: expandedCategory === category.id ? `0 0 30px ${category.glowColor}` : 'none' }}
+                key={category.title}
+                type="button"
+                aria-label={`View ${category.title} roadmap`}
+                className={`category-card group relative overflow-hidden rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-5 text-left cursor-pointer transition-transform duration-300 hover:-translate-y-2 ${category.gradient}`}
+                style={{ boxShadow: `0 10px 40px ${category.glowColor}` }}
               >
-                {/* Background Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                <div className="category-topline flex items-center justify-between text-xs text-muted mb-4">
+                  <span className={`category-dot w-2 h-2 rounded-full ${
+                    category.accent === 'red' ? 'bg-red-400' :
+                    category.accent === 'blue' ? 'bg-blue-400' :
+                    category.accent === 'green' ? 'bg-green-400' : 'bg-purple'
+                  }`} />
+                  <span>/category/</span>
+                </div>
 
-                <div className="relative z-10">
-                  <div className="text-5xl mb-4">{category.icon}</div>
+                <div className="category-header flex items-center gap-3 mb-3">
+                  <span className="category-icon text-2xl">{category.icon}</span>
+                  <h3 className="text-lg font-bold m-0">{category.title}</h3>
+                </div>
 
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-cyan-400 transition-colors">{category.title}</h3>
+                <p className="text-sm text-muted leading-relaxed mb-5">{category.description}</p>
 
-                  <p className="text-sm text-gray-400 mb-4">{category.description}</p>
-
-                  {/* Expandable Content */}
-                  <div className={`overflow-hidden transition-all duration-300 ${expandedCategory === category.id ? 'max-h-40' : 'max-h-0'}`}>
-                    <div className="pt-4 border-t border-gray-700 space-y-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Students:</span>
-                        <span className="text-cyan-400 font-semibold">{category.students}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Courses:</span>
-                        <span className="text-cyan-400 font-semibold">{category.courses}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Level:</span>
-                        <span className="text-cyan-400 font-semibold">{category.difficulty}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="mt-4 flex items-center justify-between pt-4 border-t border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-xs text-gray-500">Explore →</span>
-                  </div>
+                <div className="category-footer flex items-center gap-2 text-xs text-muted mt-auto">
+                  <span className="category-arrow transition-transform duration-200 group-hover:translate-y-0.5">▼</span>
+                  <span>view roadmap</span>
+                  <span className="category-stage-count">({category.nodes.length} stages)</span>
                 </div>
               </button>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="relative z-10 py-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-center mb-4">How It Works</h2>
-          <p className="text-gray-400 text-center mb-16 text-sm sm:text-base">Get started in three simple steps</p>
+        <section className="steps-section py-16">
+          <h2 className="text-3xl font-bold text-center m-0 mb-10">
+            <span className="how-arrow text-cyan-default">&gt;</span> How It Works
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4">
-            {steps.map((step, idx) => (
-              <div key={idx} className="relative">
-                <div className="rounded-2xl border border-gray-800 bg-gradient-to-br from-gray-900/60 to-gray-900/20 p-8 text-center hover:border-cyan-500/50 transition-all duration-300 h-full">
-                  <div className="text-5xl mb-4">{step.icon}</div>
-                  <div className="text-4xl font-black text-cyan-400 mb-3">{step.number}</div>
-                  <h3 className="text-xl font-bold mb-3">{step.title}</h3>
-                  <p className="text-sm text-gray-400">{step.description}</p>
+          <div className="steps-grid grid gap-5 grid-cols-1 sm:grid-cols-3 max-sm:grid-cols-1">
+            {steps.map((step) => (
+              <div
+                key={step.number}
+                className="step-card rounded-2xl border border-[rgba(143,170,205,0.12)] bg-[rgba(13,22,35,0.9)] p-6 transition-colors duration-200 hover:border-cyan-default/30"
+              >
+                <div className="step-number bg-gradient-to-br from-cyan-default to-cyan-strong text-[#031320] font-black w-10 h-10 rounded-xl grid place-items-center mb-4 text-lg">
+                  {step.number}
                 </div>
-
-                {/* Connecting Line */}
-                {idx < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-1 bg-gradient-to-r from-cyan-500 to-transparent" />
-                )}
+                <h3 className="text-lg font-bold m-0 mb-2">{step.title}</h3>
+                <p className="text-sm text-muted leading-relaxed m-0">{step.description}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 py-20 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-8 sm:p-12 text-center">
-          <h2 className="text-3xl sm:text-4xl font-black mb-4">Ready to Transform Your Future?</h2>
-          <p className="text-gray-400 mb-8 text-sm sm:text-base">Join thousands of successful learners at IS Hub Academy</p>
-
-          <Button renderAs={Link} to="/register" size="lg" className="w-full sm:w-auto">
-            Get Started Now
+        <section className="cta-panel my-16 rounded-2xl border border-[rgba(123,200,255,0.25)] bg-gradient-to-br from-[rgba(56,215,255,0.08)] to-[rgba(45,212,167,0.06)] p-10 md:p-14 text-center">
+          <h2 className="text-3xl font-bold m-0 mb-2">Ready to Start Your Journey?</h2>
+          <p className="text-muted mb-8">Join IS Hub Academy and build skills that matter.</p>
+          <Button renderAs={Link} to="/register" size="lg">
+            Register Now
           </Button>
+        </section>
+      </main>
 
-          <p className="text-xs text-gray-500 mt-6">
-            ✓ No credit card required • ✓ Free tier available • ✓ Cancel anytime
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
       <Footer />
-
-      {/* Animations */}
-      <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-          opacity: 0;
-        }
-
-        @media (max-width: 640px) {
-          .text-4xl {
-            font-size: 2rem;
-          }
-          .text-5xl {
-            font-size: 2.5rem;
-          }
-          .text-7xl {
-            font-size: 3rem;
-          }
-        }
-      `}</style>
     </div>
   )
 }

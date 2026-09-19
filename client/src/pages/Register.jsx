@@ -1,16 +1,41 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../utils/dashboardPath'
 import { Button, Field, Input, Alert } from '../components/ui'
 
+const CATEGORY_CONTEXT = {
+  cybersecurity: {
+    label: 'Cybersecurity',
+    intro: 'Start building real security skills — network defense, ethical hacking, and compliance.',
+  },
+  development: {
+    label: 'Development',
+    intro: 'Start building real software skills — frontend, backend, and full-stack projects.',
+  },
+  networking: {
+    label: 'Networking',
+    intro: 'Start building real networking skills — routing, switching, and cloud infrastructure.',
+  },
+  creative: {
+    label: 'Creative Works',
+    intro: 'Start building real creative skills — design, motion, and digital content creation.',
+  },
+}
+
 function Register() {
   const { register } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
+
+  const categorySlug = searchParams.get('category')
+  const categoryContext = CATEGORY_CONTEXT[categorySlug] ?? null
+
+  // ══ handlers ══
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -46,12 +71,12 @@ function Register() {
 
         <div className="w-full max-w-md panel-strong p-8 md:p-10 flex flex-col gap-7 animate-fade-up shadow-[0_20px_60px_rgba(2,11,23,0.6),0_0_40px_rgba(13,190,255,0.08)]">
           <div>
-            <p className="eyebrow text-green-default">Get started</p>
+            <p className="eyebrow text-green-default">{categoryContext ? `Join ${categoryContext.label}` : 'Get started'}</p>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight m-0">
               Create your account
             </h1>
             <span className="block text-sm text-muted mt-1.5">
-              Join IS Hub Academy and start building real skills.
+              {categoryContext ? categoryContext.intro : 'Join IS Hub Academy and start building real skills.'}
             </span>
           </div>
 
