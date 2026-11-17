@@ -51,6 +51,9 @@ function Posts() {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Categories loading state: true until /categories request completes
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+
   // super_admin-only posting scope: '' = global (category_id null), otherwise a category UUID.
   const [postScope, setPostScope] = useState('')
   const [categories, setCategories] = useState([])
@@ -98,6 +101,9 @@ function Posts() {
       })
       .catch(() => {
         /* chips just show a fallback label; posting still works */
+      })
+      .finally(() => {
+        setCategoriesLoading(false)
       })
     return () => {
       cancelled = true
@@ -199,19 +205,24 @@ function Posts() {
               id="post-scope"
               value={postScope}
               onChange={(e) => setPostScope(e.target.value)}
+              disabled={categoriesLoading}
             >
               <option value="">🌐 Global — visible to all users</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              {categoriesLoading ? (
+                <option value="">⏳ Loading categories...</option>
+              ) : (
+                categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))
+              )}
             </Select>
           </Field>
         )}
 
-        <Button type="submit" disabled={submitting}>
-          {submitting ? 'Saving...' : 'Create Post'}
+        <Button type="submit" disabled={submitting || categoriesLoading}>
+          {submitting || categoriesLoading ? 'Saving...' : 'Create Post'}
         </Button>
       </form>
 
