@@ -9,13 +9,16 @@
 //   - use_env_variable tells sequelize-cli to pull the connection string from
 //     the named environment variable (set below by dotenv).
 //   - env values (development/test/production) all share the connection URI.
-
+//
 require('dotenv').config();
 
 const base = {
   use_env_variable: 'DATABASE_URL',
   dialect: 'postgres',
   logging: false,
+  dialectOptions: {
+    ssl: { require: true, rejectUnauthorized: false },
+  },
 };
 
 module.exports = {
