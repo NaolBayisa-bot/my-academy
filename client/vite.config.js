@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://my-academy-2.onrender.com/',
+        target: 'https://my-academy-2y6e.onrender.com',
         changeOrigin: true,
       },
     },
