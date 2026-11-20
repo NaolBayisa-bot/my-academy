@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://my-academy-lemon.vercel.app/',
+        target: 'https://my-academy-2.onrender.com/',
         changeOrigin: true,
       },
     },
